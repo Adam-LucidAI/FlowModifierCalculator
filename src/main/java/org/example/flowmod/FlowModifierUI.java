@@ -105,17 +105,17 @@ public class FlowModifierUI extends Application {
 
         double id = vals[0];
         double flow = vals[1];
-        double dMin = vals[2];
+        double dMin = 4.0;
 
         double stripLength = id * 5.0;
-        double dMax = Math.round((id * 0.20) / 0.5) * 0.5;
+        double dMax = Math.round(id * 0.25 * 2) / 2.0;
 
         lastPipe = new PipeSpecs(id, flow, stripLength);
         lastLayout = PerforatedCoreOptimizer.autoDesign(id, flow, dMin);
         table.getItems().setAll(lastLayout.holes());
 
-        summaryLabel.setText(String.format("Strip length = %.0f mm, Max \u00D8 = %.1f mm, Error = %.1f%%",
-                stripLength, dMax, lastLayout.worstCaseErrorPct()));
+        summaryLabel.setText(String.format("Len=%.0f mm  Rows=%d  \u00D8: 4-%.1f mm  Error=%.1f%%",
+                stripLength, lastLayout.holes().size(), dMax, lastLayout.worstCaseErrorPct()));
         summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
     }
 

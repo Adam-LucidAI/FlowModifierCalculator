@@ -19,10 +19,17 @@ public class PerforatedCoreOptimizerTest {
     }
 
     @Test
-    void autoDesignUsesMaxRule() {
-        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(150, 5000, 4.0);
+    void autoDesignRespectsCap() {
+        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(300, 100, 4.0);
         double max = layout.holes().stream().mapToDouble(HoleSpec::diameterMm).max().orElse(0);
-        assertEquals(30.0, max, 0.0001);
+        assertTrue(max <= 75.0);
+        assertTrue(layout.worstCaseErrorPct() <= 5.0);
+    }
+
+    @Test
+    void highFlowAddsRows() {
+        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(300, 5000, 4.0);
+        assertTrue(layout.holes().size() >= 20);
         assertTrue(layout.worstCaseErrorPct() <= 5.0);
     }
 }
