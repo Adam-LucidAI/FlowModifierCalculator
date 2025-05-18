@@ -9,6 +9,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import org.example.flowmod.engine.PipeSpecs;
 import org.example.flowmod.engine.PerforatedCoreOptimizer;
+import org.example.flowmod.utils.UnitConv;
 import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
 
@@ -34,7 +35,9 @@ public class FlowModifierUI extends Application {
         grid.setVgap(5);
         String[] keys = {"innerDiameterMm", "flowRateLpm", "drillMinMm"};
         for (int i = 0; i < keys.length; i++) {
-            Label l = new Label(keys[i]);
+            String text = keys[i];
+            if ("flowRateLpm".equals(text)) text = "Flow rate (GPM)";
+            Label l = new Label(text);
             TextField tf = new TextField();
             tf.setId(keys[i]);
             Label err = new Label();
@@ -104,18 +107,20 @@ public class FlowModifierUI extends Application {
         if (!valid) return;
 
         double id = vals[0];
-        double flow = vals[1];
+        double flowGpm = vals[1];
+        double flowLpm = UnitConv.gpmToLpm(flowGpm);
         double dMin = 4.0;
 
         double stripLength = id * 5.0;
         double dMax = Math.round(id * 0.25 * 2) / 2.0;
 
-        lastPipe = new PipeSpecs(id, flow, stripLength);
-        lastLayout = PerforatedCoreOptimizer.autoDesign(id, flow, dMin);
+        lastPipe = new PipeSpecs(id, flowLpm, stripLength);
+        lastLayout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin);
         table.getItems().setAll(lastLayout.holes());
 
-        summaryLabel.setText(String.format("Len=%.0f mm  Rows=%d  \u00D8: 4-%.1f mm  Error=%.1f%%",
-                stripLength, lastLayout.holes().size(), dMax, lastLayout.worstCaseErrorPct()));
+        summaryLabel.setText(String.format(
+                "Flow=%.1f L/min (%.1f GPM)  Len=%.0f mm  Rows=%d  \u00D8: 4-%.1f mm  Error=%.1f%%",
+                flowLpm, flowGpm, stripLength, lastLayout.holes().size(), dMax, lastLayout.worstCaseErrorPct()));
         summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
     }
 
