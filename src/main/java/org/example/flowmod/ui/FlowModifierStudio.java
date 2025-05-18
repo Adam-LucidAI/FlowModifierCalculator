@@ -101,9 +101,13 @@ public class FlowModifierStudio extends Application {
         PipeSpecs pipe = new PipeSpecs(vals[0], vals[1], vals[2]);
         FilterSpecs filter = new FilterSpecs(vals[3], vals[4]);
 
-        ModifierDesignStrategy strategy = algoBox.getValue().equals("Vanes") ?
-                new VaneDiffuserOptimizer() : new HoleOptimizer();
-        DesignResult result = strategy.optimise(pipe, filter, vals[5], vals[6], DEFAULT_ROWS, DEFAULT_CD);
+        DesignResult result;
+        if ("Vanes".equals(algoBox.getValue())) {
+            result = new VaneDiffuserOptimizer()
+                    .optimise(pipe, filter, vals[5], vals[6], DEFAULT_ROWS, DEFAULT_CD);
+        } else {
+            result = HoleOptimizer.optimise(pipe, filter, vals[5], vals[6], DEFAULT_ROWS, DEFAULT_CD);
+        }
         if (result.holeLayout() != null) {
             table.getItems().setAll(result.holeLayout().holes());
         } else {
