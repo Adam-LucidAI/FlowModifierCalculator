@@ -16,28 +16,26 @@ public final class PerforatedCoreOptimizer {
     /** Desired jet/pipe velocity ratio when estimating open area. */
     private static final double JET_VELOCITY_RATIO = 3.0;
 
-    private static double roundHalf(double v) {
-        return Math.round(v * 2.0) / 2.0;
-    }
-
     private PerforatedCoreOptimizer() {}
 
     /**
      * Designs a perforated core using automatic rules.
      * The strip length defaults to five times the pipe diameter and the
-     * maximum drill size is 25% of the pipe diameter rounded to the nearest
-     * 0.5 mm.
+     * maximum drill size is 25% of the pipe diameter rounded to the desired
+     * drill step.
      *
      * @param pipeDiameterMm pipe inner diameter
      * @param flowLpm        target total flow rate
      * @param drillMinMm     minimum drill diameter
+     * @param drillStepMm    rounding increment for hole diameters
      * @return optimised hole layout
      */
     public static HoleLayout autoDesign(double pipeDiameterMm,
                                         double flowLpm,
-                                        double drillMinMm) {
+                                        double drillMinMm,
+                                        double drillStepMm) {
         double stripLength = pipeDiameterMm * 5.0;
-        double maxDia = roundHalf(pipeDiameterMm * 0.25);
+        double maxDia = Math.round((pipeDiameterMm * 0.25) / drillStepMm) * drillStepMm;
 
         List<Double> avail = DrillCatalogue.DRILLS.stream()
                 .filter(d -> d >= drillMinMm && d <= maxDia)
@@ -56,7 +54,8 @@ public final class PerforatedCoreOptimizer {
         while (true) {
             PipeSpecs pipe = new PipeSpecs(pipeDiameterMm, flowLpm, stripLength);
             layout = layoutForCount(pipe, stripLength, flowLpm,
-                                    drillMinMm, maxDia, avail, rows);
+                                    drillMinMm, maxDia, avail, rows,
+                                    drillStepMm);
             double err = layout.worstCaseErrorPct();
             boolean maxUsed = layout.holes().stream()
                     .anyMatch(h -> Math.abs(h.diameterMm() - maxDia) < 0.0001);
@@ -108,7 +107,7 @@ public final class PerforatedCoreOptimizer {
         for (int n = 3; n <= 50; n++) {
             HoleLayout layout = layoutForCount(pipe, stripLengthMm, flowLpm,
                                                drillMinMm, drillMaxMm,
-                                               avail, n);
+                                               avail, n, 0.0);
             double err = layout.worstCaseErrorPct();
             if (err < bestErr) {
                 bestErr = err;
@@ -127,7 +126,8 @@ public final class PerforatedCoreOptimizer {
                                              double drillMinMm,
                                              double drillMaxMm,
                                              List<Double> avail,
-                                             int holes) {
+                                             int holes,
+                                             double drillStepMm) {
         double dpStart = FlowPhysics.compute(pipe).pressureDropPaPerM() * (stripLengthMm / 1000.0);
         if (dpStart <= 0) {
             dpStart = 1000.0;
@@ -144,7 +144,12 @@ public final class PerforatedCoreOptimizer {
             double dia = 2.0 * Math.sqrt(area / Math.PI) * 1000.0;
             if (Double.isNaN(dia) || dia < drillMinMm) dia = drillMinMm;
             if (dia > drillMaxMm) dia = drillMaxMm;
-            double snapped = nearest(dia, avail);
+            double snapped;
+            if (drillStepMm > 0) {
+                snapped = Math.round(dia / drillStepMm) * drillStepMm;
+            } else {
+                snapped = nearest(dia, avail);
+            }
             double actualArea = Math.PI * Math.pow(snapped / 1000.0 / 2.0, 2);
             double actualFlow = CD * actualArea * Math.sqrt(2 * dp / DENSITY) * 60000.0;
             total += actualFlow;
