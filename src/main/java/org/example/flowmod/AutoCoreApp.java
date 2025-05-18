@@ -1,20 +1,22 @@
 package org.example.flowmod;
 
 import org.example.flowmod.engine.PerforatedCoreOptimizer;
+import org.example.flowmod.utils.UnitConv;
 
 public final class AutoCoreApp {
     private AutoCoreApp() {}
 
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.err.println("Usage: AutoCoreApp ID_mm Flow_Lpm [dMin]");
+            System.err.println("Usage: AutoCoreApp ID_mm Flow_Gpm [dMin]");
             System.exit(1);
         }
         double id = Double.parseDouble(args[0]);
-        double flow = Double.parseDouble(args[1]);
+        double flowGpm = Double.parseDouble(args[1]);
+        double flowLpm = UnitConv.gpmToLpm(flowGpm);
         double dMin = args.length > 2 ? Double.parseDouble(args[2]) : 4.0;
 
-        var layout = PerforatedCoreOptimizer.autoDesign(id, flow, dMin);
+        var layout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin);
 
         System.out.println("index,position_mm,diameter_mm,predicted_lpm");
         for (var h : layout.holes()) {
