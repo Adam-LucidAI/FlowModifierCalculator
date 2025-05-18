@@ -12,6 +12,7 @@ import org.example.flowmod.engine.FlowPhysics;
 import org.example.flowmod.engine.FilterSpecs;
 import org.example.flowmod.engine.PipeSpecs;
 import org.example.flowmod.engine.DesignResult;
+import org.example.flowmod.engine.PerforatedCoreOptimizer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +27,13 @@ public class FlowModifierUI extends Application {
 
     private TableView<HoleSpec> table;
     private Label summaryLabel;
+    private TableView<HoleSpec> coreTable;
+    private Label coreSummaryLabel;
 
     private final List<TextField> fields = new ArrayList<>();
     private final List<Label> errors = new ArrayList<>();
+    private final List<TextField> coreFields = new ArrayList<>();
+    private final List<Label> coreErrors = new ArrayList<>();
 
     @Override
     public void start(Stage stage) {
@@ -37,7 +42,8 @@ public class FlowModifierUI extends Application {
         inputsTab.setClosable(false);
         Tab resultsTab = new Tab("Results");
         resultsTab.setClosable(false);
-        tabs.getTabs().addAll(inputsTab, resultsTab);
+        Tab coreTab = createCoreTab();
+        tabs.getTabs().addAll(inputsTab, resultsTab, coreTab);
 
         GridPane grid = new GridPane();
         grid.setHgap(5);
@@ -144,6 +150,61 @@ public class FlowModifierUI extends Application {
 
         boolean warn = result.worstCaseErrorPct() > 5.0 || faceVelocity > filter.faceVelocityMaxMs();
         summaryLabel.setTextFill(warn ? Color.RED : Color.BLACK);
+    }
+
+    private Tab createCoreTab() {
+        GridPane grid = new GridPane();
+        grid.setHgap(5);
+        grid.setVgap(5);
+        String[] keys = new String[]{"innerDiameterMm", "lengthMm", "flowLpm", "drillMinMm", "drillMaxMm"};
+        for (int i = 0; i < keys.length; i++) {
+            Label l = new Label(keys[i]);
+            TextField tf = new TextField();
+            Label err = new Label();
+            err.setTextFill(Color.RED);
+            grid.addRow(i * 2, l, tf);
+            grid.add(err, 1, i * 2 + 1);
+            coreFields.add(tf);
+            coreErrors.add(err);
+        }
+        Button calc = new Button("Design");
+        calc.setOnAction(e -> calculateCore());
+        coreTable = new TableView<>();
+        TableColumn<HoleSpec, Integer> c1 = new TableColumn<>("#");
+        c1.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().index()));
+        TableColumn<HoleSpec, Double> c2 = new TableColumn<>("Pos mm");
+        c2.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().positionMm()));
+        TableColumn<HoleSpec, Double> c3 = new TableColumn<>("Ø mm");
+        c3.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().diameterMm()));
+        TableColumn<HoleSpec, Double> c4 = new TableColumn<>("L/min");
+        c4.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().predictedLpm()));
+        coreTable.getColumns().addAll(c1, c2, c3, c4);
+        coreSummaryLabel = new Label();
+        VBox box = new VBox(10, grid, calc, coreTable, coreSummaryLabel);
+        Tab t = new Tab("Inlet Core", box);
+        t.setClosable(false);
+        return t;
+    }
+
+    private void calculateCore() {
+        for (Label err : coreErrors) err.setText("");
+        Double[] vals = new Double[coreFields.size()];
+        boolean valid = true;
+        for (int i = 0; i < coreFields.size(); i++) {
+            try { vals[i] = Double.parseDouble(coreFields.get(i).getText()); }
+            catch (Exception ex) { coreErrors.get(i).setText("Number required"); valid = false; }
+        }
+        if (!valid) return;
+        double id = vals[0];
+        double len = vals[1];
+        double flow = vals[2];
+        double dMin = vals[3];
+        double dMax = vals[4];
+        PipeSpecs pipe = new PipeSpecs(id, flow, len);
+        HoleLayout layout = PerforatedCoreOptimizer.design(pipe, len, flow, dMin, dMax, 5.0, 0.5);
+        coreTable.getItems().setAll(layout.holes());
+        coreSummaryLabel.setText(String.format("Error %.1f%%", layout.worstCaseErrorPct()));
+        coreSummaryLabel.setTextFill(layout.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
     }
 }
 
