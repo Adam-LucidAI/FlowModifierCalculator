@@ -9,8 +9,8 @@ mvn test
 mvn javafx:run
 ```
 
-The STL library is resolved via [JitPack](https://jitpack.io), so Maven will
-download it automatically during the build.
+The project still references the [JitPack](https://jitpack.io) repository, but
+STL export is temporarily disabled while the library selection is finalised.
 
 The CLI version can still be run using the exec plugin profile.
 

@@ -2,15 +2,15 @@ package org.example.flowmod.engine;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.example.flowmod.FilterSpecs;
+import org.example.flowmod.engine.FilterSpecs;
 import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
-import org.example.flowmod.PipeSpecs;
+import org.example.flowmod.engine.PipeSpecs;
 import org.example.flowmod.engine.DesignResult;
 import org.example.flowmod.engine.ModifierDesignStrategy;
 
 public final class GraduatedHoleOptimizer implements ModifierDesignStrategy {
-    private GraduatedHoleOptimizer() {}
+    public GraduatedHoleOptimizer() {}
 
     @Override
     public DesignResult optimise(PipeSpecs pipe,
