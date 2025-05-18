@@ -33,21 +33,16 @@
             <version>21.0.2</version>
         </dependency>
         <dependency>
-            <groupId>de.javagl</groupId>
-            <artifactId>stl</artifactId>
-            <version>0.3.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.testfx</groupId>
             <artifactId>testfx-junit5</artifactId>
             <version>4.0.16-alpha</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-  <groupId>com.github.javagl</groupId>
-  <artifactId>stl</artifactId>
-  <version>v0.4.0</version>   
-</dependency>
+            <groupId>com.github.javagl</groupId>
+            <artifactId>stl</artifactId>
+            <version>0.4.0</version>
+        </dependency>
     </dependencies>
     <repositories>
   <repository>
