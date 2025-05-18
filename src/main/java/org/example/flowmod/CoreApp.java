@@ -20,7 +20,7 @@ public final class CoreApp {
         double dMax = args.length > 4 ? Double.parseDouble(args[4]) : 5.0;
 
         PipeSpecs pipe = new PipeSpecs(id, flow, length);
-        HoleLayout layout = PerforatedCoreOptimizer.design(pipe, length, flow, dMin, dMax, 5.0, 0.5);
+        HoleLayout layout = PerforatedCoreOptimizer.design(pipe, length, flow, dMin, dMax, 5.0);
 
         System.out.println("index,position_mm,diameter_mm,predicted_lpm");
         for (HoleSpec h : layout.holes()) {
