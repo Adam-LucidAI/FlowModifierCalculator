@@ -22,6 +22,8 @@ public class FlowModifierUI extends Application {
     private final List<TextField> fields = new ArrayList<>();
     private final List<Label> errors = new ArrayList<>();
 
+    private ComboBox<Double> holeStepBox;
+
     private TableView<HoleSpec> table;
     private Label summaryLabel;
     private PipeSpecs lastPipe;
@@ -48,6 +50,11 @@ public class FlowModifierUI extends Application {
             fields.add(tf);
             errors.add(err);
         }
+        Label stepLabel = new Label("Hole step (mm)");
+        holeStepBox = new ComboBox<>();
+        holeStepBox.getItems().addAll(0.5, 1.0, 2.0, 5.0);
+        holeStepBox.setValue(0.5);
+        grid.addRow(keys.length * 2, stepLabel, holeStepBox);
         Label drillSet = new Label("Drill set: drills.json");
         Button calc = new Button("Calculate");
         calc.setId("calculateButton");
@@ -115,9 +122,10 @@ public class FlowModifierUI extends Application {
 
         double stripLength = id * 5.0;
         double dMax = Math.round(id * 0.25 * 2) / 2.0;
+        double step = holeStepBox.getValue() == null ? 0.5 : holeStepBox.getValue();
 
         lastPipe = new PipeSpecs(id, flowLpm, stripLength);
-        lastLayout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin);
+        lastLayout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, step);
         table.getItems().setAll(lastLayout.holes());
 
         double re = PhysicsUtil.reynolds(id, flowLpm);
@@ -125,8 +133,8 @@ public class FlowModifierUI extends Application {
         double minD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).min().orElse(dMin);
         double maxD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).max().orElse(dMax);
         summaryLabel.setText(String.format(
-                "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm",
-                stripLength, lastLayout.holes().size(), minD, maxD, lastLayout.worstCaseErrorPct(),
+                "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   \u00D8 step = %.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm",
+                stripLength, lastLayout.holes().size(), minD, maxD, step, lastLayout.worstCaseErrorPct(),
                 re, sheetW, stripLength));
         summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
     }
