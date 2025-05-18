@@ -59,8 +59,20 @@ public class FlowModifierUI extends Application {
         c1.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().index()));
         TableColumn<HoleSpec, Double> c2 = new TableColumn<>("Pos (mm)");
         c2.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().positionMm()));
+        c2.setCellFactory(tc -> new TableCell<>() {
+            @Override protected void updateItem(Double v, boolean empty) {
+                super.updateItem(v, empty);
+                setText(empty || v == null ? null : String.format("%.2f", v));
+            }
+        });
         TableColumn<HoleSpec, Double> c3 = new TableColumn<>("\u00D8 (mm)");
         c3.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().diameterMm()));
+        c3.setCellFactory(tc -> new TableCell<>() {
+            @Override protected void updateItem(Double v, boolean empty) {
+                super.updateItem(v, empty);
+                setText(empty || v == null ? null : String.format("%.2f", v));
+            }
+        });
         table.getColumns().addAll(c1, c2, c3);
         VBox centre = new VBox(10, summaryLabel, table);
         root.setCenter(centre);
