@@ -4,207 +4,121 @@ import javafx.application.Application;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import org.example.flowmod.engine.FlowPhysics;
 import org.example.flowmod.engine.FilterSpecs;
 import org.example.flowmod.engine.PipeSpecs;
 import org.example.flowmod.engine.DesignResult;
-import org.example.flowmod.engine.PerforatedCoreOptimizer;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Minimal JavaFX UI for interactive optimisation.
- */
+/** Simplified JavaFX UI for interactive optimisation. */
 public class FlowModifierUI extends Application {
-
     private static final int DEFAULT_ROWS = 10;
     private static final double DEFAULT_CD = 0.62;
 
-    private TableView<HoleSpec> table;
-    private Label summaryLabel;
-    private TableView<HoleSpec> coreTable;
-    private Label coreSummaryLabel;
-
     private final List<TextField> fields = new ArrayList<>();
     private final List<Label> errors = new ArrayList<>();
-    private final List<TextField> coreFields = new ArrayList<>();
-    private final List<Label> coreErrors = new ArrayList<>();
+    private TableView<HoleSpec> table;
+    private Label summaryLabel;
+    private PipeSpecs lastPipe;
+    private DesignResult lastResult;
 
     @Override
     public void start(Stage stage) {
-        TabPane tabs = new TabPane();
-        Tab inputsTab = new Tab("Inputs");
-        inputsTab.setClosable(false);
-        Tab resultsTab = new Tab("Results");
-        resultsTab.setClosable(false);
-        Tab coreTab = createCoreTab();
-        tabs.getTabs().addAll(inputsTab, resultsTab, coreTab);
+        BorderPane root = new BorderPane();
 
         GridPane grid = new GridPane();
         grid.setHgap(5);
         grid.setVgap(5);
-
-        String[] keys = new String[]{
-                "innerDiameterMm",
-                "flowRateLpm",
-                "modifierLengthMm",
-                "openAreaPercent",
-                "faceVelocityMaxMs",
-                "drillMinMm",
-                "drillMaxMm"
-        };
-
+        String[] keys = {"innerDiameterMm", "modifierLengthMm", "flowRateLpm", "drillMinMm", "drillMaxMm"};
         for (int i = 0; i < keys.length; i++) {
             Label l = new Label(keys[i]);
             TextField tf = new TextField();
             tf.setId(keys[i]);
             Label err = new Label();
             err.setTextFill(Color.RED);
-            int row = i * 2;
-            grid.add(l, 0, row);
-            grid.add(tf, 1, row);
-            grid.add(err, 1, row + 1);
+            grid.addRow(i * 2, l, tf);
+            grid.add(err, 1, i * 2 + 1);
             fields.add(tf);
             errors.add(err);
         }
-
         Button calc = new Button("Calculate");
         calc.setId("calculateButton");
         calc.setOnAction(e -> calculate());
-        VBox inputBox = new VBox(10, grid, calc);
-        inputsTab.setContent(inputBox);
+        VBox left = new VBox(10, grid, calc);
+        root.setLeft(left);
 
+        summaryLabel = new Label();
         table = new TableView<>();
         table.setId("resultTable");
         TableColumn<HoleSpec, Integer> c1 = new TableColumn<>("Row");
         c1.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().index()));
         TableColumn<HoleSpec, Double> c2 = new TableColumn<>("Pos (mm)");
         c2.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().positionMm()));
-        TableColumn<HoleSpec, Double> c3 = new TableColumn<>("Ø (mm)");
+        TableColumn<HoleSpec, Double> c3 = new TableColumn<>("\u00D8 (mm)");
         c3.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().diameterMm()));
-        TableColumn<HoleSpec, Double> c4 = new TableColumn<>("L/min");
-        c4.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().predictedLpm()));
-        table.getColumns().addAll(c1, c2, c3, c4);
+        table.getColumns().addAll(c1, c2, c3);
+        VBox centre = new VBox(10, summaryLabel, table);
+        root.setCenter(centre);
 
-        summaryLabel = new Label();
-        Button exportStl = new Button("Export STL");
-        exportStl.setId("exportStlButton");
-        exportStl.setDisable(true); // Feature temporarily disabled
-        VBox resultsBox = new VBox(10, table, summaryLabel, exportStl);
-        resultsTab.setContent(resultsBox);
+        Button gen3d = new Button("Generate 3-D");
+        gen3d.setDisable(true);
+        gen3d.setOnAction(e -> showStlTodo());
+        Button validate = new Button("Validate flow");
+        validate.setOnAction(e -> validateFlow());
+        HBox bottom = new HBox(10, gen3d, validate);
+        root.setBottom(bottom);
 
-        Scene scene = new Scene(tabs, 600, 400);
+        Scene scene = new Scene(root, 600, 400);
         stage.setScene(scene);
         stage.setTitle("Flow Modifier Calculator");
         stage.show();
     }
 
     private void calculate() {
-        for (Label err : errors) {
-            err.setText("");
-        }
-
+        for (Label err : errors) err.setText("");
         Double[] vals = new Double[fields.size()];
         boolean valid = true;
         for (int i = 0; i < fields.size(); i++) {
-            try {
-                vals[i] = Double.parseDouble(fields.get(i).getText());
-            } catch (Exception ex) {
-                errors.get(i).setText("Number required");
-                valid = false;
-            }
+            try { vals[i] = Double.parseDouble(fields.get(i).getText()); }
+            catch (Exception ex) { errors.get(i).setText("Number required"); valid = false; }
         }
         if (!valid) return;
 
-        double innerDia = vals[0];
-        double flowRate = vals[1];
-        double modifierLen = vals[2];
-        double openAreaPct = vals[3];
-        double faceVelMax = vals[4];
-        double drillMin = vals[5];
-        double drillMax = vals[6];
-
-        PipeSpecs pipe = new PipeSpecs(innerDia, flowRate, modifierLen);
-        FilterSpecs filter = new FilterSpecs(openAreaPct, faceVelMax);
-
-        DesignResult result = HoleOptimizer.optimise(pipe, filter, drillMin, drillMax, DEFAULT_ROWS, DEFAULT_CD);
-        HoleLayout layout = result.holeLayout();
-        table.getItems().setAll(layout.holes());
-
-        FlowPhysics.Result phys = FlowPhysics.compute(pipe);
-        double area = Math.PI * Math.pow(pipe.innerDiameterMm() / 1000.0 / 2.0, 2);
-        double openArea = area * filter.openAreaPercent() / 100.0;
-        double flowRateM3s = pipe.flowRateLpm() / 1000.0 / 60.0;
-        double faceVelocity = flowRateM3s / openArea;
-        double screenDp = 1000 * faceVelocity * faceVelocity / 2.0;
-
-        String txt = String.format(
-                "Re=%.0f   Pipe \u0394P=%.1f kPa/m   Screen \u0394P=%.1f kPa   Error=%.1f%%",
-                phys.reynolds(), phys.pressureDropPaPerM() / 1000.0, screenDp / 1000.0, result.worstCaseErrorPct());
-        summaryLabel.setText(txt);
-
-        boolean warn = result.worstCaseErrorPct() > 5.0 || faceVelocity > filter.faceVelocityMaxMs();
-        summaryLabel.setTextFill(warn ? Color.RED : Color.BLACK);
-    }
-
-    private Tab createCoreTab() {
-        GridPane grid = new GridPane();
-        grid.setHgap(5);
-        grid.setVgap(5);
-        String[] keys = new String[]{"innerDiameterMm", "lengthMm", "flowLpm", "drillMinMm", "drillMaxMm"};
-        for (int i = 0; i < keys.length; i++) {
-            Label l = new Label(keys[i]);
-            TextField tf = new TextField();
-            Label err = new Label();
-            err.setTextFill(Color.RED);
-            grid.addRow(i * 2, l, tf);
-            grid.add(err, 1, i * 2 + 1);
-            coreFields.add(tf);
-            coreErrors.add(err);
-        }
-        Button calc = new Button("Design");
-        calc.setOnAction(e -> calculateCore());
-        coreTable = new TableView<>();
-        TableColumn<HoleSpec, Integer> c1 = new TableColumn<>("#");
-        c1.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().index()));
-        TableColumn<HoleSpec, Double> c2 = new TableColumn<>("Pos mm");
-        c2.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().positionMm()));
-        TableColumn<HoleSpec, Double> c3 = new TableColumn<>("Ø mm");
-        c3.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().diameterMm()));
-        TableColumn<HoleSpec, Double> c4 = new TableColumn<>("L/min");
-        c4.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().predictedLpm()));
-        coreTable.getColumns().addAll(c1, c2, c3, c4);
-        coreSummaryLabel = new Label();
-        VBox box = new VBox(10, grid, calc, coreTable, coreSummaryLabel);
-        Tab t = new Tab("Inlet Core", box);
-        t.setClosable(false);
-        return t;
-    }
-
-    private void calculateCore() {
-        for (Label err : coreErrors) err.setText("");
-        Double[] vals = new Double[coreFields.size()];
-        boolean valid = true;
-        for (int i = 0; i < coreFields.size(); i++) {
-            try { vals[i] = Double.parseDouble(coreFields.get(i).getText()); }
-            catch (Exception ex) { coreErrors.get(i).setText("Number required"); valid = false; }
-        }
-        if (!valid) return;
         double id = vals[0];
         double len = vals[1];
         double flow = vals[2];
         double dMin = vals[3];
         double dMax = vals[4];
-        PipeSpecs pipe = new PipeSpecs(id, flow, len);
-        HoleLayout layout = PerforatedCoreOptimizer.design(pipe, len, flow, dMin, dMax, 5.0, 0.5);
-        coreTable.getItems().setAll(layout.holes());
-        coreSummaryLabel.setText(String.format("Error %.1f%%", layout.worstCaseErrorPct()));
-        coreSummaryLabel.setTextFill(layout.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
+
+        lastPipe = new PipeSpecs(id, flow, len);
+        FilterSpecs filter = new FilterSpecs(0, 0); // defaults ignored
+        lastResult = HoleOptimizer.optimise(lastPipe, filter, dMin, dMax, DEFAULT_ROWS, DEFAULT_CD);
+        HoleLayout layout = lastResult.holeLayout();
+        table.getItems().setAll(layout.holes());
+
+        FlowPhysics.Result phys = FlowPhysics.compute(lastPipe);
+        summaryLabel.setText(String.format("Re=%.0f   \u0394P=%.1f kPa/m   Error=%.1f%%",
+                phys.reynolds(), phys.pressureDropPaPerM() / 1000.0, lastResult.worstCaseErrorPct()));
+        summaryLabel.setTextFill(lastResult.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
+    }
+
+    private void validateFlow() {
+        if (lastPipe == null || lastResult == null) return;
+        boolean ok = lastResult.worstCaseErrorPct() <= 5.0;
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setHeaderText(null);
+        alert.setContentText(ok ? "Balanced" : "Recalc");
+        alert.getDialogPane().lookup(".content.label").setStyle("-fx-text-fill:" + (ok ? "green" : "red"));
+        alert.showAndWait();
+    }
+
+    private void showStlTodo() {
+        Alert a = new Alert(Alert.AlertType.INFORMATION, "STL export coming soon");
+        a.showAndWait();
     }
 }
-

@@ -17,10 +17,8 @@ public class FlowModifierUITest extends ApplicationTest {
     @Test
     void tableHasExpectedRows() {
         clickOn("#innerDiameterMm").write("20");
-        clickOn("#flowRateLpm").write("5");
         clickOn("#modifierLengthMm").write("100");
-        clickOn("#openAreaPercent").write("30");
-        clickOn("#faceVelocityMaxMs").write("1.0");
+        clickOn("#flowRateLpm").write("5");
         clickOn("#drillMinMm").write("1.0");
         clickOn("#drillMaxMm").write("5.0");
         clickOn("#calculateButton");
