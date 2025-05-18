@@ -1,4 +1,6 @@
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/AppLauncher.java
+/Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/AutoCoreApp.java
+/Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/CoreApp.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/FlowModifierUI.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/HoleLayout.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/HoleOptimizer.java
@@ -9,6 +11,7 @@
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/engine/FlowPhysics.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/engine/GraduatedHoleOptimizer.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/engine/ModifierDesignStrategy.java
+/Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/engine/PerforatedCoreOptimizer.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/engine/PhysicsUtil.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/engine/PipeSpecs.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/engine/VaneDiffuserOptimizer.java
