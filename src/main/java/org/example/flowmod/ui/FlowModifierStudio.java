@@ -102,7 +102,7 @@ public class FlowModifierStudio extends Application {
         FilterSpecs filter = new FilterSpecs(vals[3], vals[4]);
 
         ModifierDesignStrategy strategy = algoBox.getValue().equals("Vanes") ?
-                new VaneDiffuserOptimizer() : new GraduatedHoleOptimizer();
+                new VaneDiffuserOptimizer() : new HoleOptimizer();
         DesignResult result = strategy.optimise(pipe, filter, vals[5], vals[6], DEFAULT_ROWS, DEFAULT_CD);
         if (result.holeLayout() != null) {
             table.getItems().setAll(result.holeLayout().holes());
