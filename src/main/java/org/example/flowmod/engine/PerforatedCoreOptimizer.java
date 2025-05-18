@@ -16,7 +16,7 @@ public final class PerforatedCoreOptimizer {
     /**
      * Designs a perforated core using automatic rules.
      * The strip length defaults to five times the pipe diameter and the
-     * maximum drill size is 20% of the pipe diameter rounded to the nearest
+     * maximum drill size is 25% of the pipe diameter rounded to the nearest
      * 0.5 mm.
      *
      * @param pipeDiameterMm pipe inner diameter
@@ -28,11 +28,45 @@ public final class PerforatedCoreOptimizer {
                                         double flowLpm,
                                         double drillMinMm) {
         double stripLength = pipeDiameterMm * 5.0;
-        double maxDia = Math.round((pipeDiameterMm * 0.20) / 0.5) * 0.5;
+        double maxDia = Math.round(pipeDiameterMm * 0.25 * 2) / 2.0;
+        int rows = 8;
 
-        PipeSpecs pipe = new PipeSpecs(pipeDiameterMm, flowLpm, stripLength);
-        return design(pipe, stripLength, flowLpm,
-                      drillMinMm, maxDia, 5.0, 0.5);
+        HoleLayout layout = null;
+        while (true) {
+            PipeSpecs pipe = new PipeSpecs(pipeDiameterMm, flowLpm, stripLength);
+            layout = layoutForCount(pipe, stripLength, flowLpm,
+                                    4.0, maxDia, 0.5, rows);
+            double err = layout.worstCaseErrorPct();
+            boolean maxUsed = layout.holes().stream()
+                    .anyMatch(h -> Math.abs(h.diameterMm() - maxDia) < 0.0001);
+            if (err <= 5.0) {
+                break;
+            }
+            if (maxUsed) {
+                if (rows < 120) {
+                    rows += 4;
+                    continue;
+                } else {
+                    stripLength += 0.5 * pipeDiameterMm;
+                    if (stripLength > 30.0 * pipeDiameterMm) {
+                        break;
+                    }
+                    rows = 8;
+                    continue;
+                }
+            } else {
+                if (rows < 120) {
+                    rows += 4;
+                } else {
+                    stripLength += 0.5 * pipeDiameterMm;
+                    if (stripLength > 30.0 * pipeDiameterMm) {
+                        break;
+                    }
+                    rows = 8;
+                }
+            }
+        }
+        return layout;
     }
 
     /**
