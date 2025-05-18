@@ -1,0 +1,8 @@
+{
+  "pipe": { "innerDiameterMm": 20, "flowRateLpm": 5, "modifierLengthMm": 100 },
+  "filter": { "openAreaPercent": 30, "faceVelocityMaxMs": 1.0 },
+  "drillMinMm": 1.0,
+  "drillMaxMm": 5.0,
+  "rows": 10,
+  "Cd": 0.62
+}
