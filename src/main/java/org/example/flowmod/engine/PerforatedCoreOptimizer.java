@@ -14,6 +14,28 @@ public final class PerforatedCoreOptimizer {
     private PerforatedCoreOptimizer() {}
 
     /**
+     * Designs a perforated core using automatic rules.
+     * The strip length defaults to five times the pipe diameter and the
+     * maximum drill size is 20% of the pipe diameter rounded to the nearest
+     * 0.5 mm.
+     *
+     * @param pipeDiameterMm pipe inner diameter
+     * @param flowLpm        target total flow rate
+     * @param drillMinMm     minimum drill diameter
+     * @return optimised hole layout
+     */
+    public static HoleLayout autoDesign(double pipeDiameterMm,
+                                        double flowLpm,
+                                        double drillMinMm) {
+        double stripLength = pipeDiameterMm * 5.0;
+        double maxDia = Math.round((pipeDiameterMm * 0.20) / 0.5) * 0.5;
+
+        PipeSpecs pipe = new PipeSpecs(pipeDiameterMm, flowLpm, stripLength);
+        return design(pipe, stripLength, flowLpm,
+                      drillMinMm, maxDia, 5.0, 0.5);
+    }
+
+    /**
      * Designs a perforated inlet core.
      *
      * @param pipe           upstream pipe specifications

@@ -17,4 +17,12 @@ public class PerforatedCoreOptimizerTest {
             assertTrue(h.diameterMm() >= 2.0 && h.diameterMm() <= 6.0);
         }
     }
+
+    @Test
+    void autoDesignUsesMaxRule() {
+        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(150, 5000, 4.0);
+        double max = layout.holes().stream().mapToDouble(HoleSpec::diameterMm).max().orElse(0);
+        assertEquals(30.0, max, 0.0001);
+        assertTrue(layout.worstCaseErrorPct() <= 5.0);
+    }
 }
