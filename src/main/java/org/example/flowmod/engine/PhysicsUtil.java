@@ -17,4 +17,19 @@ public final class PhysicsUtil {
                 : (reynolds < 4000 ? FlowPhysics.Regime.TRANSITIONAL : FlowPhysics.Regime.TURBULENT);
         return new FlowPhysics.Result(velocity, reynolds, pressureDrop, regime);
     }
+
+    /**
+     * Compute the Reynolds number for water at 20&nbsp;°C.
+     *
+     * @param diameterMm pipe inner diameter in millimetres
+     * @param flowLpm    flow rate in litres per minute
+     * @return Reynolds number
+     */
+    public static double reynolds(double diameterMm, double flowLpm) {
+        double d = diameterMm / 1000.0;
+        double q = flowLpm / 60000.0;
+        double area = Math.PI * Math.pow(d / 2.0, 2);
+        double v = q / area;
+        return v * d / 1.004e-6;
+    }
 }

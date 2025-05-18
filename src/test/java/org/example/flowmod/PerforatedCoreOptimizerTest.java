@@ -32,4 +32,11 @@ public class PerforatedCoreOptimizerTest {
         assertTrue(layout.holes().size() >= 20);
         assertTrue(layout.worstCaseErrorPct() <= 5.0);
     }
+
+    @Test
+    void lowFlowDoesNotExceedMaxRows() {
+        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(300, 40, 4.0);
+        assertTrue(layout.holes().size() <= 60);
+        assertTrue(layout.worstCaseErrorPct() <= 5.0);
+    }
 }

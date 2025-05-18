@@ -9,6 +9,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import org.example.flowmod.engine.PipeSpecs;
 import org.example.flowmod.engine.PerforatedCoreOptimizer;
+import org.example.flowmod.engine.PhysicsUtil;
 import org.example.flowmod.utils.UnitConv;
 import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
@@ -118,9 +119,12 @@ public class FlowModifierUI extends Application {
         lastLayout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin);
         table.getItems().setAll(lastLayout.holes());
 
+        double re = PhysicsUtil.reynolds(id, flowLpm);
+        double sheetW = Math.PI * id;
         summaryLabel.setText(String.format(
-                "Flow=%.1f L/min (%.1f GPM)  Len=%.0f mm  Rows=%d  \u00D8: 4-%.1f mm  Error=%.1f%%",
-                flowLpm, flowGpm, stripLength, lastLayout.holes().size(), dMax, lastLayout.worstCaseErrorPct()));
+                "Len=%.0f mm   Rows=%d   \u00D8 4-%.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm",
+                stripLength, lastLayout.holes().size(), dMax, lastLayout.worstCaseErrorPct(),
+                re, sheetW, stripLength));
         summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
     }
 

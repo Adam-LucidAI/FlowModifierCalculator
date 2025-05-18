@@ -10,6 +10,10 @@ import java.util.List;
 public final class PerforatedCoreOptimizer {
     private static final double CD = 0.62;
     private static final double DENSITY = 1000.0;
+    /** Maximum number of rows allowed when auto designing. */
+    private static final int MAX_ROWS = 60;
+    /** Desired jet/pipe velocity ratio when estimating open area. */
+    private static final double JET_VELOCITY_RATIO = 3.0;
 
     private PerforatedCoreOptimizer() {}
 
@@ -29,7 +33,15 @@ public final class PerforatedCoreOptimizer {
                                         double drillMinMm) {
         double stripLength = pipeDiameterMm * 5.0;
         double maxDia = Math.round(pipeDiameterMm * 0.25 * 2) / 2.0;
-        int rows = 8;
+
+        double flowM3s = flowLpm / 60000.0;
+        double areaPipe = Math.PI * Math.pow(pipeDiameterMm / 1000.0, 2) / 4.0;
+        double vPipe = flowM3s / areaPipe;
+        double areaReq = flowM3s / (JET_VELOCITY_RATIO * vPipe);
+        double holeArea = Math.PI * Math.pow(maxDia / 1000.0 / 2.0, 2);
+        int rows = (int) Math.ceil(areaReq / holeArea);
+        if (rows < 8) rows = 8;
+        if (rows > MAX_ROWS) rows = MAX_ROWS;
 
         HoleLayout layout = null;
         while (true) {
@@ -42,28 +54,21 @@ public final class PerforatedCoreOptimizer {
             if (err <= 5.0) {
                 break;
             }
-            if (maxUsed) {
-                if (rows < 120) {
-                    rows += 4;
-                    continue;
-                } else {
-                    stripLength += 0.5 * pipeDiameterMm;
-                    if (stripLength > 30.0 * pipeDiameterMm) {
-                        break;
-                    }
-                    rows = 8;
-                    continue;
+
+            if (rows < MAX_ROWS) {
+                rows += 4;
+                if (rows > MAX_ROWS) rows = MAX_ROWS;
+                continue;
+            }
+
+            // At maximum row count: extend the strip if holes have not
+            // reached the allowed maximum diameter or accuracy is poor.
+            if (!maxUsed || rows >= MAX_ROWS) {
+                stripLength += 0.5 * pipeDiameterMm;
+                if (stripLength > 30.0 * pipeDiameterMm) {
+                    break;
                 }
-            } else {
-                if (rows < 120) {
-                    rows += 4;
-                } else {
-                    stripLength += 0.5 * pipeDiameterMm;
-                    if (stripLength > 30.0 * pipeDiameterMm) {
-                        break;
-                    }
-                    rows = 8;
-                }
+                // keep rows at MAX_ROWS
             }
         }
         return layout;
