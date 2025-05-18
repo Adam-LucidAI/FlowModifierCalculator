@@ -6,6 +6,7 @@ import org.example.flowmod.engine.FlowPhysics;
 import org.example.flowmod.HoleOptimizer;
 import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
+import org.example.flowmod.engine.DesignResult;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -21,13 +22,14 @@ public class AppLauncher {
         }
 
         FlowPhysics.Result phys = FlowPhysics.compute(settings.pipe());
-        HoleLayout layout = HoleOptimizer.optimise(
+        DesignResult result = HoleOptimizer.optimise(
                 settings.pipe(),
                 settings.filter(),
                 settings.drillMinMm(),
                 settings.drillMaxMm(),
                 settings.rows(),
                 settings.Cd());
+        HoleLayout layout = result.holeLayout();
 
         System.out.println("Row | Pos mm | \u00D8 mm | L/min");
         for (HoleSpec h : layout.holes()) {
@@ -42,7 +44,7 @@ public class AppLauncher {
         double screenDp = 1000 * faceVelocity * faceVelocity / 2.0;
 
         System.out.printf("Re=%.0f, pipe \u0394P=%.1f Pa/m, screen \u0394P=%.1f Pa, worst-case=%.1f%%\n",
-                phys.reynolds(), phys.pressureDropPaPerM(), screenDp, layout.worstCaseErrorPct());
+                phys.reynolds(), phys.pressureDropPaPerM(), screenDp, result.worstCaseErrorPct());
 
         try (PrintWriter pw = new PrintWriter("hole_layout.csv")) {
             pw.println("index,position_mm,diameter_mm,predicted_lpm");

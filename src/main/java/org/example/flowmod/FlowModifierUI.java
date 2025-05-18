@@ -11,6 +11,7 @@ import javafx.stage.Stage;
 import org.example.flowmod.engine.FlowPhysics;
 import org.example.flowmod.engine.FilterSpecs;
 import org.example.flowmod.engine.PipeSpecs;
+import org.example.flowmod.engine.DesignResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -125,7 +126,8 @@ public class FlowModifierUI extends Application {
         PipeSpecs pipe = new PipeSpecs(innerDia, flowRate, modifierLen);
         FilterSpecs filter = new FilterSpecs(openAreaPct, faceVelMax);
 
-        HoleLayout layout = HoleOptimizer.optimise(pipe, filter, drillMin, drillMax, DEFAULT_ROWS, DEFAULT_CD);
+        DesignResult result = HoleOptimizer.optimise(pipe, filter, drillMin, drillMax, DEFAULT_ROWS, DEFAULT_CD);
+        HoleLayout layout = result.holeLayout();
         table.getItems().setAll(layout.holes());
 
         FlowPhysics.Result phys = FlowPhysics.compute(pipe);
@@ -137,10 +139,10 @@ public class FlowModifierUI extends Application {
 
         String txt = String.format(
                 "Re=%.0f   Pipe \u0394P=%.1f kPa/m   Screen \u0394P=%.1f kPa   Error=%.1f%%",
-                phys.reynolds(), phys.pressureDropPaPerM() / 1000.0, screenDp / 1000.0, layout.worstCaseErrorPct());
+                phys.reynolds(), phys.pressureDropPaPerM() / 1000.0, screenDp / 1000.0, result.worstCaseErrorPct());
         summaryLabel.setText(txt);
 
-        boolean warn = layout.worstCaseErrorPct() > 5.0 || faceVelocity > filter.faceVelocityMaxMs();
+        boolean warn = result.worstCaseErrorPct() > 5.0 || faceVelocity > filter.faceVelocityMaxMs();
         summaryLabel.setTextFill(warn ? Color.RED : Color.BLACK);
     }
 }
