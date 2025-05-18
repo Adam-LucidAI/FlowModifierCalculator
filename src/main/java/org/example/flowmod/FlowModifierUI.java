@@ -8,6 +8,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import org.example.flowmod.engine.FlowPhysics;
 
 import java.util.ArrayList;
 import java.util.List;
