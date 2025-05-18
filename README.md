@@ -17,9 +17,9 @@ The CLI version can still be run using the exec plugin profile.
 ### How to use
 
 1. Run `mvn javafx:run`.
-2. Enter the pipe I.D., modifier length, flow rate and drill size range.
-3. Click **Calculate** to populate the table and summary.
-4. Use **Validate flow** to check the design.
+2. Enter the pipe I.D., flow rate and minimum drill size (defaults to 4 mm).
+3. Click **Calculate** to auto-design the perforated strip.
+4. **Export CSV** saves the hole layout; other actions are marked TODO.
 
 The interface is shown below:
 

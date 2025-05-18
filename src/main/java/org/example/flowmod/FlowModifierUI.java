@@ -7,25 +7,23 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import org.example.flowmod.engine.FlowPhysics;
-import org.example.flowmod.engine.FilterSpecs;
 import org.example.flowmod.engine.PipeSpecs;
-import org.example.flowmod.engine.DesignResult;
+import org.example.flowmod.engine.PerforatedCoreOptimizer;
+import org.example.flowmod.HoleLayout;
+import org.example.flowmod.HoleSpec;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /** Simplified JavaFX UI for interactive optimisation. */
 public class FlowModifierUI extends Application {
-    private static final int DEFAULT_ROWS = 10;
-    private static final double DEFAULT_CD = 0.62;
-
     private final List<TextField> fields = new ArrayList<>();
     private final List<Label> errors = new ArrayList<>();
+
     private TableView<HoleSpec> table;
     private Label summaryLabel;
     private PipeSpecs lastPipe;
-    private DesignResult lastResult;
+    private HoleLayout lastLayout;
 
     @Override
     public void start(Stage stage) {
@@ -34,7 +32,7 @@ public class FlowModifierUI extends Application {
         GridPane grid = new GridPane();
         grid.setHgap(5);
         grid.setVgap(5);
-        String[] keys = {"innerDiameterMm", "modifierLengthMm", "flowRateLpm", "drillMinMm", "drillMaxMm"};
+        String[] keys = {"innerDiameterMm", "flowRateLpm", "drillMinMm"};
         for (int i = 0; i < keys.length; i++) {
             Label l = new Label(keys[i]);
             TextField tf = new TextField();
@@ -54,6 +52,7 @@ public class FlowModifierUI extends Application {
 
         summaryLabel = new Label();
         table = new TableView<>();
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setId("resultTable");
         TableColumn<HoleSpec, Integer> c1 = new TableColumn<>("Row");
         c1.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue().index()));
@@ -77,12 +76,15 @@ public class FlowModifierUI extends Application {
         VBox centre = new VBox(10, summaryLabel, table);
         root.setCenter(centre);
 
+        Button confirm = new Button("Confirm hydraulics");
+        confirm.setOnAction(e -> validateFlow());
+        Button exportCsv = new Button("Export CSV");
+        exportCsv.setOnAction(e -> exportCsv());
+        Button exportCad = new Button("Export CAD 2-D");
+        exportCad.setOnAction(e -> todoAlert());
         Button gen3d = new Button("Generate 3-D");
-        gen3d.setDisable(true);
-        gen3d.setOnAction(e -> showStlTodo());
-        Button validate = new Button("Validate flow");
-        validate.setOnAction(e -> validateFlow());
-        HBox bottom = new HBox(10, gen3d, validate);
+        gen3d.setOnAction(e -> todoAlert());
+        HBox bottom = new HBox(10, confirm, exportCsv, exportCad, gen3d);
         root.setBottom(bottom);
 
         Scene scene = new Scene(root, 600, 400);
@@ -102,26 +104,24 @@ public class FlowModifierUI extends Application {
         if (!valid) return;
 
         double id = vals[0];
-        double len = vals[1];
-        double flow = vals[2];
-        double dMin = vals[3];
-        double dMax = vals[4];
+        double flow = vals[1];
+        double dMin = vals[2];
 
-        lastPipe = new PipeSpecs(id, flow, len);
-        FilterSpecs filter = new FilterSpecs(0, 0); // defaults ignored
-        lastResult = HoleOptimizer.optimise(lastPipe, filter, dMin, dMax, DEFAULT_ROWS, DEFAULT_CD);
-        HoleLayout layout = lastResult.holeLayout();
-        table.getItems().setAll(layout.holes());
+        double stripLength = id * 5.0;
+        double dMax = Math.round((id * 0.20) / 0.5) * 0.5;
 
-        FlowPhysics.Result phys = FlowPhysics.compute(lastPipe);
-        summaryLabel.setText(String.format("Re=%.0f   \u0394P=%.1f kPa/m   Error=%.1f%%",
-                phys.reynolds(), phys.pressureDropPaPerM() / 1000.0, lastResult.worstCaseErrorPct()));
-        summaryLabel.setTextFill(lastResult.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
+        lastPipe = new PipeSpecs(id, flow, stripLength);
+        lastLayout = PerforatedCoreOptimizer.autoDesign(id, flow, dMin);
+        table.getItems().setAll(lastLayout.holes());
+
+        summaryLabel.setText(String.format("Strip length = %.0f mm, Max \u00D8 = %.1f mm, Error = %.1f%%",
+                stripLength, dMax, lastLayout.worstCaseErrorPct()));
+        summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
     }
 
     private void validateFlow() {
-        if (lastPipe == null || lastResult == null) return;
-        boolean ok = lastResult.worstCaseErrorPct() <= 5.0;
+        if (lastPipe == null || lastLayout == null) return;
+        boolean ok = lastLayout.worstCaseErrorPct() <= 5.0;
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setHeaderText(null);
         alert.setContentText(ok ? "Balanced" : "Recalc");
@@ -129,8 +129,20 @@ public class FlowModifierUI extends Application {
         alert.showAndWait();
     }
 
-    private void showStlTodo() {
-        Alert a = new Alert(Alert.AlertType.INFORMATION, "STL export coming soon");
+    private void exportCsv() {
+        if (lastLayout == null) return;
+        try (java.io.PrintWriter pw = new java.io.PrintWriter("hole_layout.csv")) {
+            pw.println("index,position_mm,diameter_mm,predicted_lpm");
+            for (HoleSpec h : lastLayout.holes()) {
+                pw.printf("%d,%.2f,%.2f,%.2f%n", h.index(), h.positionMm(), h.diameterMm(), h.predictedLpm());
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void todoAlert() {
+        Alert a = new Alert(Alert.AlertType.INFORMATION, "TODO");
         a.showAndWait();
     }
 }
