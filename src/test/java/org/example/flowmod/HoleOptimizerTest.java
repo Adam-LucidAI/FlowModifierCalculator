@@ -2,6 +2,8 @@ package org.example.flowmod;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+import org.example.flowmod.engine.FilterSpecs;
+import org.example.flowmod.engine.PipeSpecs;
 
 public class HoleOptimizerTest {
     @Test
