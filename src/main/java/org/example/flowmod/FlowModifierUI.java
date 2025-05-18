@@ -83,7 +83,10 @@ public class FlowModifierUI extends Application {
         table.getColumns().addAll(c1, c2, c3, c4);
 
         summaryLabel = new Label();
-        VBox resultsBox = new VBox(10, table, summaryLabel);
+        Button exportStl = new Button("Export STL");
+        exportStl.setId("exportStlButton");
+        exportStl.setDisable(true); // Feature temporarily disabled
+        VBox resultsBox = new VBox(10, table, summaryLabel, exportStl);
         resultsTab.setContent(resultsBox);
 
         Scene scene = new Scene(tabs, 600, 400);
