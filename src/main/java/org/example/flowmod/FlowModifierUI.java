@@ -48,10 +48,11 @@ public class FlowModifierUI extends Application {
             fields.add(tf);
             errors.add(err);
         }
+        Label drillSet = new Label("Drill set: drills.json");
         Button calc = new Button("Calculate");
         calc.setId("calculateButton");
         calc.setOnAction(e -> calculate());
-        VBox left = new VBox(10, grid, calc);
+        VBox left = new VBox(10, grid, drillSet, calc);
         root.setLeft(left);
 
         summaryLabel = new Label();
@@ -110,7 +111,7 @@ public class FlowModifierUI extends Application {
         double id = vals[0];
         double flowGpm = vals[1];
         double flowLpm = UnitConv.gpmToLpm(flowGpm);
-        double dMin = 4.0;
+        double dMin = vals[2];
 
         double stripLength = id * 5.0;
         double dMax = Math.round(id * 0.25 * 2) / 2.0;
@@ -121,9 +122,11 @@ public class FlowModifierUI extends Application {
 
         double re = PhysicsUtil.reynolds(id, flowLpm);
         double sheetW = Math.PI * id;
+        double minD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).min().orElse(dMin);
+        double maxD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).max().orElse(dMax);
         summaryLabel.setText(String.format(
-                "Len=%.0f mm   Rows=%d   \u00D8 4-%.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm",
-                stripLength, lastLayout.holes().size(), dMax, lastLayout.worstCaseErrorPct(),
+                "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm",
+                stripLength, lastLayout.holes().size(), minD, maxD, lastLayout.worstCaseErrorPct(),
                 re, sheetW, stripLength));
         summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
     }
