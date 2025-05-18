@@ -26,4 +26,10 @@ public class FlowPhysicsTest {
         FlowPhysics.Result r = FlowPhysics.compute(pipe);
         assertEquals(FlowPhysics.Regime.TURBULENT, r.regime());
     }
+
+    @Test
+    void reynoldsUtility() {
+        double re = org.example.flowmod.engine.PhysicsUtil.reynolds(150, 40);
+        assertTrue(re > 5500 && re < 5800);
+    }
 }
