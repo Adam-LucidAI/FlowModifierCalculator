@@ -2,6 +2,7 @@ package org.example.flowmod;
 
 import org.example.flowmod.engine.PerforatedCoreOptimizer;
 import org.example.flowmod.engine.PipeSpecs;
+import org.example.flowmod.engine.OptimizationResult;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import org.example.flowmod.HoleLayout;
@@ -20,7 +21,8 @@ public class PerforatedCoreOptimizerTest {
 
     @Test
     void autoDesignRespectsCap() {
-        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(300, 100, 4.0, 0.5, null);
+        OptimizationResult result = PerforatedCoreOptimizer.autoDesign(300, 100, 4.0, 0.5, null);
+        HoleLayout layout = result.layout();
         double max = layout.holes().stream().mapToDouble(HoleSpec::diameterMm).max().orElse(0);
         assertTrue(max <= 75.0);
         assertTrue(layout.worstCaseErrorPct() <= 5.0);
@@ -28,7 +30,8 @@ public class PerforatedCoreOptimizerTest {
 
     @Test
     void highFlowAddsRows() {
-        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(300, 5000, 4.0, 0.5, null);
+        OptimizationResult result = PerforatedCoreOptimizer.autoDesign(300, 5000, 4.0, 0.5, null);
+        HoleLayout layout = result.layout();
         assertTrue(layout.holes().size() >= 20);
         assertTrue(layout.holes().size() <= 60);
         assertTrue(layout.worstCaseErrorPct() <= 5.0);
@@ -36,14 +39,16 @@ public class PerforatedCoreOptimizerTest {
 
     @Test
     void lowFlowDoesNotExceedMaxRows() {
-        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(300, 40, 4.0, 0.5, null);
+        OptimizationResult result = PerforatedCoreOptimizer.autoDesign(300, 40, 4.0, 0.5, null);
+        HoleLayout layout = result.layout();
         assertTrue(layout.holes().size() <= 60);
         assertTrue(layout.worstCaseErrorPct() <= 5.0);
     }
 
     @Test
     void stepTwoMmProducesMultiples() {
-        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(150, 100, 4.0, 2.0, null);
+        OptimizationResult result = PerforatedCoreOptimizer.autoDesign(150, 100, 4.0, 2.0, null);
+        HoleLayout layout = result.layout();
         for (HoleSpec h : layout.holes()) {
             double mod = Math.round(h.diameterMm() / 2.0);
             assertEquals(mod * 2.0, h.diameterMm(), 0.0001);
@@ -52,7 +57,8 @@ public class PerforatedCoreOptimizerTest {
 
     @Test
     void halfMillimetreGranularityPresent() {
-        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(150, 100, 4.0, 0.5, null);
+        OptimizationResult result = PerforatedCoreOptimizer.autoDesign(150, 100, 4.0, 0.5, null);
+        HoleLayout layout = result.layout();
         boolean hasHalf = layout.holes().stream()
                 .anyMatch(h -> Math.abs(h.diameterMm() - Math.round(h.diameterMm())) > 0.0001);
         assertTrue(hasHalf);
@@ -60,7 +66,8 @@ public class PerforatedCoreOptimizerTest {
 
     @Test
     void ligamentRule150mmWall6() {
-        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(150, 100, 4.0, 0.5, 6.0);
+        OptimizationResult result = PerforatedCoreOptimizer.autoDesign(150, 100, 4.0, 0.5, 6.0);
+        HoleLayout layout = result.layout();
         double pitch = 150 * 5.0 / (layout.holes().size() + 1);
         for (HoleSpec h : layout.holes()) {
             assertTrue(pitch >= h.diameterMm() + 1.8);
@@ -69,7 +76,8 @@ public class PerforatedCoreOptimizerTest {
 
     @Test
     void ligamentRule100mmWall2() {
-        HoleLayout layout = PerforatedCoreOptimizer.autoDesign(100, 100, 4.0, 0.5, 2.0);
+        OptimizationResult result = PerforatedCoreOptimizer.autoDesign(100, 100, 4.0, 0.5, 2.0);
+        HoleLayout layout = result.layout();
         double pitch = 100 * 5.0 / (layout.holes().size() + 1);
         for (HoleSpec h : layout.holes()) {
             assertTrue(pitch >= h.diameterMm() + 0.6);
