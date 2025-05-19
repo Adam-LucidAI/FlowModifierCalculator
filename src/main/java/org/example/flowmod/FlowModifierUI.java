@@ -6,12 +6,16 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.web.WebView;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.example.flowmod.engine.PipeSpecs;
 import org.example.flowmod.engine.PerforatedCoreOptimizer;
 import org.example.flowmod.engine.PhysicsUtil;
 import org.example.flowmod.utils.UnitConv;
 import org.example.flowmod.utils.PipeSchedule;
+import org.example.flowmod.utils.SvgWriter;
+import org.example.flowmod.utils.CsvWriter;
 import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
 
@@ -30,6 +34,15 @@ public class FlowModifierUI extends Application {
     private Label summaryLabel;
     private PipeSpecs lastPipe;
     private HoleLayout lastLayout;
+    private String lastSvg;
+
+    private Button confirmBtn;
+    private Button exportCsvBtn;
+    private Button exportSvgBtn;
+    private Button gen3dBtn;
+
+    private WebView blueprintView;
+    private TabPane rightTabs;
 
     @Override
     public void start(Stage stage) {
@@ -95,16 +108,28 @@ public class FlowModifierUI extends Application {
         VBox centre = new VBox(10, summaryLabel, table);
         root.setCenter(centre);
 
-        Button confirm = new Button("Confirm hydraulics");
-        confirm.setOnAction(e -> validateFlow());
-        Button exportCsv = new Button("Export CSV");
-        exportCsv.setOnAction(e -> exportCsv());
-        Button exportCad = new Button("Export CAD 2-D");
-        exportCad.setOnAction(e -> todoAlert());
-        Button gen3d = new Button("Generate 3-D");
-        gen3d.setOnAction(e -> todoAlert());
-        HBox bottom = new HBox(10, confirm, exportCsv, exportCad, gen3d);
+        blueprintView = new WebView();
+        Tab blueprintTab = new Tab("Blueprint", blueprintView);
+        blueprintTab.setClosable(false);
+        rightTabs = new TabPane(blueprintTab);
+        rightTabs.setVisible(false);
+        root.setRight(rightTabs);
+
+        confirmBtn = new Button("Confirm hydraulics");
+        confirmBtn.setOnAction(e -> validateFlow());
+        exportCsvBtn = new Button("Export CSV");
+        exportCsvBtn.setOnAction(e -> exportCsv());
+        exportSvgBtn = new Button("Export 2-D (SVG)");
+        exportSvgBtn.setOnAction(e -> exportSvg());
+        gen3dBtn = new Button("Generate 3-D");
+        gen3dBtn.setOnAction(e -> todoAlert());
+        HBox bottom = new HBox(10, confirmBtn, exportCsvBtn, exportSvgBtn, gen3dBtn);
         root.setBottom(bottom);
+
+        confirmBtn.setDisable(true);
+        exportCsvBtn.setDisable(true);
+        exportSvgBtn.setDisable(true);
+        gen3dBtn.setDisable(true);
 
         Scene scene = new Scene(root, 600, 400);
         stage.setScene(scene);
@@ -142,6 +167,13 @@ public class FlowModifierUI extends Application {
         lastPipe = new PipeSpecs(id, flowLpm, stripLength);
         lastLayout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, step, wall);
         table.getItems().setAll(lastLayout.holes());
+        lastSvg = SvgWriter.toSvg(lastLayout, lastPipe);
+        blueprintView.getEngine().loadContent(lastSvg, "image/svg+xml");
+        rightTabs.setVisible(true);
+        confirmBtn.setDisable(false);
+        exportCsvBtn.setDisable(false);
+        exportSvgBtn.setDisable(false);
+        gen3dBtn.setDisable(false);
 
         double re = PhysicsUtil.reynolds(id, flowLpm);
         double sheetW = Math.PI * id;
@@ -170,11 +202,32 @@ public class FlowModifierUI extends Application {
 
     private void exportCsv() {
         if (lastLayout == null) return;
-        try (java.io.PrintWriter pw = new java.io.PrintWriter("hole_layout.csv")) {
-            pw.println("index,position_mm,diameter_mm,predicted_lpm");
-            for (HoleSpec h : lastLayout.holes()) {
-                pw.printf("%d,%.2f,%.2f,%.2f%n", h.index(), h.positionMm(), h.diameterMm(), h.predictedLpm());
-            }
+        FileChooser fc = new FileChooser();
+        fc.setInitialFileName("layout.csv");
+        var file = fc.showSaveDialog(table.getScene().getWindow());
+        if (file == null) return;
+        try {
+            CsvWriter.write(file.toPath(), lastLayout);
+            Alert a = new Alert(Alert.AlertType.INFORMATION, "CSV saved to " + file.getAbsolutePath());
+            a.setHeaderText(null);
+            a.showAndWait();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void exportSvg() {
+        if (lastSvg == null) return;
+        FileChooser fc = new FileChooser();
+        fc.setInitialFileName("layout.svg");
+        var file = fc.showSaveDialog(table.getScene().getWindow());
+        if (file == null) return;
+        try (java.io.PrintWriter pw = new java.io.PrintWriter(file)) {
+            pw.print(lastSvg);
+            Alert a = new Alert(Alert.AlertType.INFORMATION,
+                    "SVG saved to " + file.getAbsolutePath() + " (import into CAD or convert to DXF)");
+            a.setHeaderText(null);
+            a.showAndWait();
         } catch (Exception ex) {
             ex.printStackTrace();
         }
