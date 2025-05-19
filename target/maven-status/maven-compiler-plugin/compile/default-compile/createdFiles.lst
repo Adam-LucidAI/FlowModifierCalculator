@@ -1,3 +1,4 @@
+org/example/flowmod/FlowModifierUI$4.class
 org/example/flowmod/engine/VaneSpec.class
 org/example/flowmod/engine/FlowPhysics.class
 org/example/flowmod/HoleLayout.class
@@ -30,4 +31,5 @@ org/example/flowmod/model3d/ExportService.class
 org/example/flowmod/engine/VaneDiffuserOptimizer.class
 org/example/flowmod/AppLauncher.class
 org/example/flowmod/engine/FilterSpecs.class
+org/example/flowmod/engine/OptimizationResult.class
 org/example/flowmod/HoleSpec.class
