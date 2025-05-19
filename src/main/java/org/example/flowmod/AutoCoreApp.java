@@ -8,7 +8,7 @@ public final class AutoCoreApp {
 
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.err.println("Usage: AutoCoreApp ID_mm Flow_Gpm [dMin=4] [step=0.5]");
+            System.err.println("Usage: AutoCoreApp ID_mm Flow_Gpm [dMin=4] [step=0.5] [wall]");
             System.exit(1);
         }
         double id = Double.parseDouble(args[0]);
@@ -16,7 +16,8 @@ public final class AutoCoreApp {
         double flowLpm = UnitConv.gpmToLpm(flowGpm);
         double dMin = args.length > 2 ? Double.parseDouble(args[2]) : 4.0;
         double step = args.length > 3 ? Double.parseDouble(args[3]) : 0.5;
-        var layout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, step);
+        Double wall = args.length > 4 ? Double.parseDouble(args[4]) : null;
+        var layout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, step, wall);
 
         System.out.println("index,position_mm,diameter_mm,predicted_lpm");
         for (var h : layout.holes()) {
