@@ -4,6 +4,8 @@ import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
 import org.example.flowmod.DrillCatalogue;
 import org.example.flowmod.utils.PipeSchedule;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +18,7 @@ public final class PerforatedCoreOptimizer {
     private static final int ROW_LIMIT = 60;
     /** Desired jet/pipe velocity ratio when estimating open area. */
     private static final double JET_VELOCITY_RATIO = 3.0;
+    private static final Logger LOG = Logger.getLogger(PerforatedCoreOptimizer.class.getName());
 
     private PerforatedCoreOptimizer() {}
 
@@ -55,7 +58,12 @@ public final class PerforatedCoreOptimizer {
         if (rows > ROW_LIMIT) rows = ROW_LIMIT;
 
         HoleLayout layout = null;
+        int attempts = 0;
         while (true) {
+            attempts++;
+            if (attempts > 500) {
+                throw new IllegalStateException("Optimiser failed to converge after 500 iterations");
+            }
             PipeSpecs pipe = new PipeSpecs(pipeDiameterMm, flowLpm, stripLength);
             layout = layoutForCount(pipe, stripLength, flowLpm,
                                     drillMinMm, maxDia, avail, rows,
@@ -69,6 +77,8 @@ public final class PerforatedCoreOptimizer {
             double err = layout.worstCaseErrorPct();
             boolean maxUsed = layout.holes().stream()
                     .anyMatch(h -> Math.abs(h.diameterMm() - maxDia) < 0.0001);
+
+            LOG.log(Level.FINE, String.format("iter=%d rows=%d len=%.1f err=%.2f", attempts, rows, stripLength, err));
 
             if (!spacingOk) {
                 if (rows > 8) {

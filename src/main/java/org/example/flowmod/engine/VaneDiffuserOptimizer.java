@@ -17,6 +17,6 @@ public class VaneDiffuserOptimizer implements ModifierDesignStrategy {
             vanes.add(new VaneSpec(30.0, spacing, 1.0, spacing * (i + 1)));
         }
         VaneLayout layout = new VaneLayout(vanes);
-        return new DesignResult(null, layout, 0.0);
+        return new DesignResult(pipe, null, layout, 0.0);
     }
 }
