@@ -172,7 +172,7 @@ public final class PerforatedCoreOptimizer {
             if (drillStepMm > 0) {
                 snapped = Math.round(dia / drillStepMm) * drillStepMm;
             } else {
-                snapped = nearest(dia, avail);
+                snapped = nearest(avail, dia);
             }
             double actualArea = Math.PI * Math.pow(snapped / 1000.0 / 2.0, 2);
             double actualFlow = CD * actualArea * Math.sqrt(2 * dp / DENSITY) * 60000.0;
@@ -183,7 +183,10 @@ public final class PerforatedCoreOptimizer {
         return new HoleLayout(specs, err);
     }
 
-    private static double nearest(double val, List<Double> set) {
+    private static double nearest(List<Double> set, double val) {
+        if (set.isEmpty()) {
+            throw new IllegalArgumentException("no drills");
+        }
         double best = set.get(0);
         double diff = Math.abs(val - best);
         for (double d : set) {

@@ -1,17 +1,19 @@
 package org.example.flowmod.model3d;
 
-import javafx.scene.shape.MeshView;
-import javafx.scene.shape.TriangleMesh;
+import javafx.scene.shape.Box;
+import javafx.scene.Node;
 import org.example.flowmod.engine.PipeSpecs;
 import org.example.flowmod.engine.DesignResult;
 
 public final class ModelBuilder {
     private ModelBuilder() {}
 
-    public static TriangleMesh buildFlowModifierMesh(DesignResult design, PipeSpecs pipe) {
-        // Placeholder simple box mesh
-        TriangleMesh mesh = new TriangleMesh();
-        // TODO real mesh generation
-        return mesh;
+    public static Node buildFlowModifierMesh(DesignResult design, PipeSpecs pipe) {
+        if (design == null || design.holeLayout() == null ||
+                design.holeLayout().holes().isEmpty()) {
+            return new Box(1, 1, 1);
+        }
+        // TODO replace with TriangleMesh generation
+        return new Box(1, 1, 1);
     }
 }
