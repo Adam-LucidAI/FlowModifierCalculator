@@ -41,6 +41,28 @@ public final class PerforatedCoreOptimizer {
                                                 double drillStepMm,
                                                 Double wallThkMmNullable) {
         double stripLength = pipeDiameterMm * 5.0;
+        return autoDesign(pipeDiameterMm, stripLength, flowLpm, drillMinMm,
+                          drillStepMm, wallThkMmNullable);
+    }
+
+    /**
+     * Designs a perforated core using automatic rules with a specified
+     * starting strip length.
+     *
+     * @param pipeDiameterMm pipe inner diameter
+     * @param stripLengthMm  initial strip length
+     * @param flowLpm        target total flow rate
+     * @param drillMinMm     minimum drill diameter
+     * @param drillStepMm    rounding increment for hole diameters
+     * @return optimised hole layout
+     */
+    public static OptimizationResult autoDesign(double pipeDiameterMm,
+                                                double stripLengthMm,
+                                                double flowLpm,
+                                                double drillMinMm,
+                                                double drillStepMm,
+                                                Double wallThkMmNullable) {
+        double stripLength = stripLengthMm;
         double maxDia = Math.round((pipeDiameterMm * 0.25) / drillStepMm) * drillStepMm;
         double wall = wallThkMmNullable != null ? wallThkMmNullable : PipeSchedule.defaultWall(pipeDiameterMm);
         double minWeb = 0.30 * wall;
