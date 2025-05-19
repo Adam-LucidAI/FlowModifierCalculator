@@ -3,6 +3,7 @@ package org.example.flowmod.engine;
 import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
 import org.example.flowmod.DrillCatalogue;
+import org.example.flowmod.utils.PipeSchedule;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,9 +34,12 @@ public final class PerforatedCoreOptimizer {
     public static HoleLayout autoDesign(double pipeDiameterMm,
                                         double flowLpm,
                                         double drillMinMm,
-                                        double drillStepMm) {
+                                        double drillStepMm,
+                                        Double wallThkMmNullable) {
         double stripLength = pipeDiameterMm * 5.0;
         double maxDia = Math.round((pipeDiameterMm * 0.25) / drillStepMm) * drillStepMm;
+        double wall = wallThkMmNullable != null ? wallThkMmNullable : PipeSchedule.defaultWall(pipeDiameterMm);
+        double minWeb = 0.30 * wall;
 
         List<Double> avail = DrillCatalogue.DRILLS.stream()
                 .filter(d -> d >= drillMinMm && d <= maxDia)
@@ -56,9 +60,29 @@ public final class PerforatedCoreOptimizer {
             layout = layoutForCount(pipe, stripLength, flowLpm,
                                     drillMinMm, maxDia, avail, rows,
                                     drillStepMm);
+
+            double pitch = stripLength / (rows + 1);
+            double maxHole = layout.holes().stream()
+                    .mapToDouble(HoleSpec::diameterMm).max().orElse(drillMinMm);
+            boolean spacingOk = pitch >= (maxHole + minWeb);
+
             double err = layout.worstCaseErrorPct();
             boolean maxUsed = layout.holes().stream()
                     .anyMatch(h -> Math.abs(h.diameterMm() - maxDia) < 0.0001);
+
+            if (!spacingOk) {
+                if (rows > 8) {
+                    rows--;
+                    continue;
+                } else {
+                    stripLength += 0.5 * pipeDiameterMm;
+                    if (stripLength > 30.0 * pipeDiameterMm) {
+                        break;
+                    }
+                    continue;
+                }
+            }
+
             if (err <= 5.0) {
                 break;
             }

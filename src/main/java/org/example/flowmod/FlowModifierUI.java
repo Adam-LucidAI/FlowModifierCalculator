@@ -11,6 +11,7 @@ import org.example.flowmod.engine.PipeSpecs;
 import org.example.flowmod.engine.PerforatedCoreOptimizer;
 import org.example.flowmod.engine.PhysicsUtil;
 import org.example.flowmod.utils.UnitConv;
+import org.example.flowmod.utils.PipeSchedule;
 import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
 
@@ -23,6 +24,7 @@ public class FlowModifierUI extends Application {
     private final List<Label> errors = new ArrayList<>();
 
     private ComboBox<Double> holeStepBox;
+    private TextField wallThkField;
 
     private TableView<HoleSpec> table;
     private Label summaryLabel;
@@ -55,6 +57,11 @@ public class FlowModifierUI extends Application {
         holeStepBox.getItems().addAll(0.5, 1.0, 2.0, 5.0);
         holeStepBox.setValue(0.5);
         grid.addRow(keys.length * 2, stepLabel, holeStepBox);
+
+        Label wallLabel = new Label("Pipe wall (mm) \u2013 blank = Sch-40");
+        wallThkField = new TextField();
+        wallThkField.setId("wallThkMm");
+        grid.addRow(keys.length * 2 + 2, wallLabel, wallThkField);
         Label drillSet = new Label("Drill set: drills.json");
         Button calc = new Button("Calculate");
         calc.setId("calculateButton");
@@ -123,20 +130,32 @@ public class FlowModifierUI extends Application {
         double stripLength = id * 5.0;
         double dMax = Math.round(id * 0.25 * 2) / 2.0;
         double step = holeStepBox.getValue() == null ? 0.5 : holeStepBox.getValue();
+        Double wall = null;
+        try {
+            if (!wallThkField.getText().isBlank()) {
+                wall = Double.parseDouble(wallThkField.getText());
+            }
+        } catch (Exception ex) {
+            wall = null;
+        }
 
         lastPipe = new PipeSpecs(id, flowLpm, stripLength);
-        lastLayout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, step);
+        lastLayout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, step, wall);
         table.getItems().setAll(lastLayout.holes());
 
         double re = PhysicsUtil.reynolds(id, flowLpm);
         double sheetW = Math.PI * id;
         double minD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).min().orElse(dMin);
         double maxD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).max().orElse(dMax);
+        double usedWall = wall != null ? wall : PipeSchedule.defaultWall(id);
+        double pitch = stripLength / (lastLayout.holes().size() + 1);
+        double minWeb = 0.30 * usedWall;
+        boolean okSpacing = pitch >= maxD + minWeb;
         summaryLabel.setText(String.format(
-                "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   \u00D8 step = %.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm",
+                "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   \u00D8 step = %.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm\nPitch = %.1f mm  (min web = %.1f mm)",
                 stripLength, lastLayout.holes().size(), minD, maxD, step, lastLayout.worstCaseErrorPct(),
-                re, sheetW, stripLength));
-        summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 ? Color.RED : Color.BLACK);
+                re, sheetW, stripLength, pitch, minWeb));
+        summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 || !okSpacing ? Color.RED : Color.BLACK);
     }
 
     private void validateFlow() {
