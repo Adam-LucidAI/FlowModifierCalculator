@@ -43,6 +43,12 @@
             <version>4.0.16-alpha</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>openjfx-monocle</artifactId>
+            <version>jdk-12+1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <repositories>
   <repository>
@@ -58,6 +64,7 @@
                 <version>3.1.2</version>
                 <configuration>
                     <useModulePath>false</useModulePath>
+                    <argLine>-Dtestfx.robot=glass -Dtestfx.headless=true -Dprism.order=sw -Dglass.platform=Monocle -Dmonocle.platform=Headless -Djava.awt.headless=true</argLine>
                 </configuration>
             </plugin>
             <plugin>
