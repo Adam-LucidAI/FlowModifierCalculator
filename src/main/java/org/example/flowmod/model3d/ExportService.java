@@ -3,6 +3,7 @@ package org.example.flowmod.model3d;
 import javafx.scene.control.Alert;
 import javafx.scene.shape.TriangleMesh;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import org.example.flowmod.engine.DesignResult;
 import org.example.flowmod.utils.CsvWriter;
 import org.example.flowmod.utils.SvgWriter;
@@ -24,11 +25,11 @@ public final class ExportService {
     }
 
     /** Save the current layout to a CSV file. */
-    public static void saveCsv(DesignResult result) {
+    public static void saveCsv(DesignResult result, Stage stage) {
         if (result == null || result.holeLayout() == null) return;
         FileChooser fc = new FileChooser();
         fc.setInitialFileName("layout.csv");
-        File file = fc.showSaveDialog(null);
+        File file = fc.showSaveDialog(stage);
         if (file == null) return;
         try {
             CsvWriter.write(file.toPath(), result.holeLayout());
@@ -42,11 +43,11 @@ public final class ExportService {
     }
 
     /** Save a simple SVG blueprint of the layout. */
-    public static void saveSvg(DesignResult result) {
+    public static void saveSvg(DesignResult result, Stage stage) {
         if (result == null || result.holeLayout() == null || result.pipe() == null) return;
         FileChooser fc = new FileChooser();
         fc.setInitialFileName("layout.svg");
-        File file = fc.showSaveDialog(null);
+        File file = fc.showSaveDialog(stage);
         if (file == null) return;
         try (PrintWriter pw = new PrintWriter(file)) {
             pw.print(SvgWriter.toSvg(result.holeLayout(), result.pipe()));
