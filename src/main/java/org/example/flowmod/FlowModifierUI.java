@@ -168,16 +168,9 @@ public class FlowModifierUI extends Application {
 
         double stripLength = id * 5.0;
         double dMax = Math.round(id * 0.25 * 2) / 2.0;
-        final Double wall;
-        try {
-            if (!wallThkField.getText().isBlank()) {
-                wall = Double.parseDouble(wallThkField.getText());
-            } else {
-                wall = null;
-            }
-        } catch (Exception ex) {
-            wall = null;
-        }
+        final double wall = wallThkField.getText().isBlank()
+                ? PipeSchedule.defaultWall(id)
+                : Double.parseDouble(wallThkField.getText());
 
         lastPipe = new PipeSpecs(id, flowLpm, stripLength);
         Scene scene = table.getScene();
@@ -207,7 +200,7 @@ public class FlowModifierUI extends Application {
             double sheetW = Math.PI * id;
             double minD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).min().orElse(dMin);
             double maxD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).max().orElse(dMax);
-            double usedWall = wall != null ? wall : PipeSchedule.defaultWall(id);
+            double usedWall = wall;
             double pitch = stripLength / (lastLayout.holes().size() + 1);
             double minWeb = 0.30 * usedWall;
             boolean okSpacing = pitch >= maxD + minWeb;
