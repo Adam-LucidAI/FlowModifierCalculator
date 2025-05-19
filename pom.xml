@@ -33,6 +33,11 @@
             <version>21.0.2</version>
         </dependency>
         <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>21.0.2</version>
+        </dependency>
+        <dependency>
             <groupId>org.testfx</groupId>
             <artifactId>testfx-junit5</artifactId>
             <version>4.0.16-alpha</version>
