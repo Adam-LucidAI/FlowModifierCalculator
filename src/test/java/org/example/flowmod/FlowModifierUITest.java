@@ -20,6 +20,7 @@ public class FlowModifierUITest extends ApplicationTest {
     void tableHasExpectedRows() {
         clickOn("#innerDiameterMm").write("20");
         clickOn("#flowRateLpm").write("5");
+        clickOn("#headerLengthMm").write("100");
         clickOn("#drillMinMm").write("1.0");
         clickOn("#calculateButton");
 

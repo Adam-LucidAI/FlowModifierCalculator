@@ -1,6 +1,7 @@
 package org.example.flowmod;
 
 import org.example.flowmod.engine.PerforatedCoreOptimizer;
+import org.example.flowmod.engine.OptimizationResult;
 import org.example.flowmod.utils.UnitConv;
 
 public final class AutoCoreApp {
@@ -17,12 +18,14 @@ public final class AutoCoreApp {
         double dMin = args.length > 2 ? Double.parseDouble(args[2]) : 4.0;
         double step = args.length > 3 ? Double.parseDouble(args[3]) : 0.5;
         Double wall = args.length > 4 ? Double.parseDouble(args[4]) : null;
-        var layout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, step, wall);
+        var result = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, step, wall);
+        var layout = result.layout();
 
         System.out.println("index,position_mm,diameter_mm,predicted_lpm");
         for (var h : layout.holes()) {
             System.out.printf("%d,%.2f,%.2f,%.2f%n", h.index(), h.positionMm(), h.diameterMm(), h.predictedLpm());
         }
-        System.out.printf("error_pct,%.2f%n", layout.worstCaseErrorPct());
+        System.out.printf("error_pct,%.2f%nuniformity_pct,%.2f%n",
+                layout.worstCaseErrorPct(), result.uniformityErrorPct());
     }
 }

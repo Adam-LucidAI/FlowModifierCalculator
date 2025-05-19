@@ -3,6 +3,7 @@ package org.example.flowmod.engine;
 import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
 import org.example.flowmod.DrillCatalogue;
+import org.example.flowmod.engine.OptimizationResult;
 import org.example.flowmod.utils.PipeSchedule;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,11 +35,11 @@ public final class PerforatedCoreOptimizer {
      * @param drillStepMm    rounding increment for hole diameters
      * @return optimised hole layout
      */
-    public static HoleLayout autoDesign(double pipeDiameterMm,
-                                        double flowLpm,
-                                        double drillMinMm,
-                                        double drillStepMm,
-                                        Double wallThkMmNullable) {
+    public static OptimizationResult autoDesign(double pipeDiameterMm,
+                                                double flowLpm,
+                                                double drillMinMm,
+                                                double drillStepMm,
+                                                Double wallThkMmNullable) {
         double stripLength = pipeDiameterMm * 5.0;
         double maxDia = Math.round((pipeDiameterMm * 0.25) / drillStepMm) * drillStepMm;
         double wall = wallThkMmNullable != null ? wallThkMmNullable : PipeSchedule.defaultWall(pipeDiameterMm);
@@ -58,11 +59,13 @@ public final class PerforatedCoreOptimizer {
         if (rows > ROW_LIMIT) rows = ROW_LIMIT;
 
         HoleLayout layout = null;
+        HoleLayout best = null;
+        double bestErr = Double.MAX_VALUE;
         int attempts = 0;
         while (true) {
             attempts++;
             if (attempts > 500) {
-                throw new IllegalStateException("Optimiser failed to converge after 500 iterations");
+                break;
             }
             PipeSpecs pipe = new PipeSpecs(pipeDiameterMm, flowLpm, stripLength);
             layout = layoutForCount(pipe, stripLength, flowLpm,
@@ -75,6 +78,10 @@ public final class PerforatedCoreOptimizer {
             boolean spacingOk = pitch >= (maxHole + minWeb);
 
             double err = layout.worstCaseErrorPct();
+            if (err < bestErr) {
+                bestErr = err;
+                best = layout;
+            }
             boolean maxUsed = layout.holes().stream()
                     .anyMatch(h -> Math.abs(h.diameterMm() - maxDia) < 0.0001);
 
@@ -113,7 +120,12 @@ public final class PerforatedCoreOptimizer {
                 // keep rows at ROW_LIMIT
             }
         }
-        return layout;
+        HoleLayout result = best != null ? best : layout;
+        double meanV = FlowPhysics.meanVelocity(result);
+        double maxV = FlowPhysics.maxVelocity(result);
+        double minV = FlowPhysics.minVelocity(result);
+        double uErr = FlowPhysics.uniformityError(result);
+        return new OptimizationResult(result, meanV, maxV, minV, uErr);
     }
 
     /**
