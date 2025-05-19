@@ -9,7 +9,7 @@ public class OptimiserInfiniteLoopTest {
     @Test
     void loopAbortsWithinTime() {
         assertTimeoutPreemptively(Duration.ofSeconds(1), () ->
-                assertThrows(IllegalStateException.class, () ->
+                assertDoesNotThrow(() ->
                         PerforatedCoreOptimizer.autoDesign(0, 100, 1.0, 0.5, 1.0)
                 ));
     }

@@ -19,7 +19,10 @@ import org.example.flowmod.utils.SvgWriter;
 import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
 import org.example.flowmod.engine.DesignResult;
+import org.example.flowmod.engine.OptimizationResult;
 import org.example.flowmod.model3d.ExportService;
+import javafx.beans.property.StringProperty;
+import javafx.beans.property.SimpleStringProperty;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +40,9 @@ public class FlowModifierUI extends Application {
     private Label summaryLabel;
     private PipeSpecs lastPipe;
     private HoleLayout lastLayout;
+    private OptimizationResult lastOpt;
     private String lastSvg;
+    private final StringProperty statusProp = new SimpleStringProperty("PASS");
     private final javafx.beans.property.ObjectProperty<DesignResult> resultProp =
             new javafx.beans.property.SimpleObjectProperty<>();
 
@@ -56,10 +61,11 @@ public class FlowModifierUI extends Application {
         GridPane grid = new GridPane();
         grid.setHgap(5);
         grid.setVgap(5);
-        String[] keys = {"innerDiameterMm", "flowRateLpm", "drillMinMm"};
+        String[] keys = {"innerDiameterMm", "flowRateLpm", "headerLengthMm", "drillMinMm"};
         for (int i = 0; i < keys.length; i++) {
             String text = keys[i];
             if ("flowRateLpm".equals(text)) text = "Flow rate (GPM)";
+            if ("headerLengthMm".equals(text)) text = "Header length (mm)";
             Label l = new Label(text);
             TextField tf = new TextField();
             tf.setId(keys[i]);
@@ -109,9 +115,25 @@ public class FlowModifierUI extends Application {
                 setText(empty || v == null ? null : String.format("%.2f", v));
             }
         });
-        table.getColumns().addAll(c1, c2, c3);
+        TableColumn<HoleSpec, String> c4 = new TableColumn<>("Status");
+        c4.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(statusProp.get()));
+        statusProp.addListener((obs, o, n) -> table.refresh());
+        table.getColumns().addAll(c1, c2, c3, c4);
+        table.setRowFactory(tv -> new TableRow<>() {
+            @Override protected void updateItem(HoleSpec item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setStyle("");
+                } else if ("FAIL".equals(statusProp.get())) {
+                    setStyle("-fx-background-color:#ffdddd;");
+                } else {
+                    setStyle("");
+                }
+            }
+        });
         root.setTop(summaryLabel);
-        root.setCenter(table);
+        BorderPane tablePane = new BorderPane(table);
+        root.setCenter(tablePane);
 
         blueprintView = new WebView();
         Tab blueprintTab = new Tab("Blueprint", blueprintView);
@@ -164,9 +186,8 @@ public class FlowModifierUI extends Application {
         double id = vals[0];
         double flowGpm = vals[1];
         double flowLpm = UnitConv.gpmToLpm(flowGpm);
-        double dMin = vals[2];
-
-        double stripLength = id * 5.0;
+        double stripLength = vals[2];
+        double dMin = vals[3];
         double dMax = Math.round(id * 0.25 * 2) / 2.0;
         final double wall = wallThkField.getText().isBlank()
                 ? PipeSchedule.defaultWall(id)
@@ -179,7 +200,8 @@ public class FlowModifierUI extends Application {
         Task<DesignResult> task = new Task<>() {
             @Override
             protected DesignResult call() {
-                HoleLayout layout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, holeStep, wall);
+                lastOpt = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, holeStep, wall);
+                HoleLayout layout = lastOpt.layout();
                 return new DesignResult(lastPipe, layout, null, layout.worstCaseErrorPct());
             }
         };
@@ -189,6 +211,7 @@ public class FlowModifierUI extends Application {
             resultProp.set(task.getValue());
             DesignResult result = task.getValue();
             lastLayout = result.holeLayout();
+            statusProp.set(lastOpt.meetsSpec(5.0) ? "PASS" : "FAIL");
             table.getItems().setAll(lastLayout.holes());
             lastSvg = SvgWriter.toSvg(lastLayout, lastPipe);
             blueprintView.getEngine().loadContent(lastSvg, "image/svg+xml");
@@ -205,10 +228,11 @@ public class FlowModifierUI extends Application {
             double minWeb = 0.30 * usedWall;
             boolean okSpacing = pitch >= maxD + minWeb;
             summaryLabel.setText(String.format(
-                    "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   \u00D8 step = %.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm\nPitch = %.1f mm  (min web = %.1f mm)",
+                    "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   \u00D8 step = %.1f mm   Error=%.1f%%   Uniformity=%.1f%% (%s)\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm\nPitch = %.1f mm  (min web = %.1f mm)",
                     stripLength, lastLayout.holes().size(), minD, maxD, holeStep, lastLayout.worstCaseErrorPct(),
+                    lastOpt.uniformityErrorPct(), statusProp.get(),
                     re, sheetW, stripLength, pitch, minWeb));
-            summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 || !okSpacing ? Color.RED : Color.BLACK);
+            summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 || !okSpacing || !"PASS".equals(statusProp.get()) ? Color.RED : Color.BLACK);
         });
 
         task.setOnFailed(ev -> {
