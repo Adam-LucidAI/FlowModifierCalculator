@@ -2,8 +2,6 @@ package org.example.flowmod;
 
 import javafx.application.Application;
 import javafx.beans.property.ReadOnlyObjectWrapper;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -40,7 +38,8 @@ public class FlowModifierUI extends Application {
     private PipeSpecs lastPipe;
     private HoleLayout lastLayout;
     private String lastSvg;
-    private final ObjectProperty<DesignResult> resultProp = new SimpleObjectProperty<>();
+    private final javafx.beans.property.ObjectProperty<DesignResult> resultProp =
+            new javafx.beans.property.SimpleObjectProperty<>();
 
     private Button confirmBtn;
     private Button exportCsvBtn;
@@ -124,17 +123,15 @@ public class FlowModifierUI extends Application {
         confirmBtn = new Button("Confirm hydraulics");
         confirmBtn.setOnAction(e -> validateFlow());
         exportCsvBtn = new Button("Export CSV");
-        exportCsvBtn.disableProperty().bind(resultProp.isNull());
-        exportCsvBtn.setOnAction(e -> ExportService.saveCsv(resultProp.get(), stage));
         exportSvgBtn = new Button("Export 2-D (SVG)");
-        exportSvgBtn.disableProperty().bind(resultProp.isNull());
-        exportSvgBtn.setOnAction(e -> ExportService.saveSvg(resultProp.get(), stage));
         gen3dBtn = new Button("Generate 3-D");
         gen3dBtn.setOnAction(e -> todoAlert());
         HBox bottom = new HBox(10, confirmBtn, exportCsvBtn, exportSvgBtn, gen3dBtn);
         root.setBottom(bottom);
 
         confirmBtn.setDisable(true);
+        exportCsvBtn.setDisable(true);
+        exportSvgBtn.setDisable(true);
         gen3dBtn.setDisable(true);
 
 
@@ -154,6 +151,16 @@ public class FlowModifierUI extends Application {
         }
         if (!valid) return;
 
+        final Stage ownerStage = (Stage) table.getScene().getWindow();
+        final double holeStep = Optional.ofNullable(holeStepBox.getValue())
+                                     .orElse(0.5);
+
+        exportCsvBtn.disableProperty().bind(resultProp.isNull());
+        exportCsvBtn.setOnAction(e ->
+                ExportService.saveCsv(resultProp.get(), ownerStage));
+        exportSvgBtn.disableProperty().bind(resultProp.isNull());
+        exportSvgBtn.setOnAction(e ->
+                ExportService.saveSvg(resultProp.get(), ownerStage));
         double id = vals[0];
         double flowGpm = vals[1];
         double flowLpm = UnitConv.gpmToLpm(flowGpm);
@@ -161,11 +168,12 @@ public class FlowModifierUI extends Application {
 
         double stripLength = id * 5.0;
         double dMax = Math.round(id * 0.25 * 2) / 2.0;
-        double holeStepVal = Optional.ofNullable(holeStepBox.getValue()).orElse(0.5);
-        Double wall = null;
+        final Double wall;
         try {
             if (!wallThkField.getText().isBlank()) {
                 wall = Double.parseDouble(wallThkField.getText());
+            } else {
+                wall = null;
             }
         } catch (Exception ex) {
             wall = null;
@@ -178,7 +186,7 @@ public class FlowModifierUI extends Application {
         Task<DesignResult> task = new Task<>() {
             @Override
             protected DesignResult call() {
-                HoleLayout layout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, holeStepVal, wall);
+                HoleLayout layout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, holeStep, wall);
                 return new DesignResult(lastPipe, layout, null, layout.worstCaseErrorPct());
             }
         };
@@ -205,7 +213,7 @@ public class FlowModifierUI extends Application {
             boolean okSpacing = pitch >= maxD + minWeb;
             summaryLabel.setText(String.format(
                     "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   \u00D8 step = %.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm\nPitch = %.1f mm  (min web = %.1f mm)",
-                    stripLength, lastLayout.holes().size(), minD, maxD, holeStepVal, lastLayout.worstCaseErrorPct(),
+                    stripLength, lastLayout.holes().size(), minD, maxD, holeStep, lastLayout.worstCaseErrorPct(),
                     re, sheetW, stripLength, pitch, minWeb));
             summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 || !okSpacing ? Color.RED : Color.BLACK);
         });
@@ -218,7 +226,7 @@ public class FlowModifierUI extends Application {
             a.showAndWait();
         });
 
-        new Thread(task).start();
+        new Thread(task, "calc-thread").start();
     }
 
     private void validateFlow() {
