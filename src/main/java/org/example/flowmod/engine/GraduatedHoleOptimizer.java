@@ -28,6 +28,6 @@ public final class GraduatedHoleOptimizer implements ModifierDesignStrategy {
             specs.add(new HoleSpec(i + 1, position, snapped, flowPerHole));
         }
         HoleLayout layout = new HoleLayout(specs, 0.0);
-        return new DesignResult(layout, null, 0.0);
+        return new DesignResult(pipe, layout, null, 0.0);
     }
 }

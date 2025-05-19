@@ -2,22 +2,26 @@ package org.example.flowmod;
 
 import javafx.application.Application;
 import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.web.WebView;
-import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.example.flowmod.engine.PipeSpecs;
 import org.example.flowmod.engine.PerforatedCoreOptimizer;
 import org.example.flowmod.engine.PhysicsUtil;
+import javafx.concurrent.Task;
+import javafx.scene.Cursor;
 import org.example.flowmod.utils.UnitConv;
 import org.example.flowmod.utils.PipeSchedule;
 import org.example.flowmod.utils.SvgWriter;
-import org.example.flowmod.utils.CsvWriter;
 import org.example.flowmod.HoleLayout;
 import org.example.flowmod.HoleSpec;
+import org.example.flowmod.engine.DesignResult;
+import org.example.flowmod.model3d.ExportService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +39,7 @@ public class FlowModifierUI extends Application {
     private PipeSpecs lastPipe;
     private HoleLayout lastLayout;
     private String lastSvg;
+    private final ObjectProperty<DesignResult> resultProp = new SimpleObjectProperty<>();
 
     private Button confirmBtn;
     private Button exportCsvBtn;
@@ -105,8 +110,8 @@ public class FlowModifierUI extends Application {
             }
         });
         table.getColumns().addAll(c1, c2, c3);
-        VBox centre = new VBox(10, summaryLabel, table);
-        root.setCenter(centre);
+        root.setTop(summaryLabel);
+        root.setCenter(table);
 
         blueprintView = new WebView();
         Tab blueprintTab = new Tab("Blueprint", blueprintView);
@@ -127,9 +132,10 @@ public class FlowModifierUI extends Application {
         root.setBottom(bottom);
 
         confirmBtn.setDisable(true);
-        exportCsvBtn.setDisable(true);
-        exportSvgBtn.setDisable(true);
         gen3dBtn.setDisable(true);
+
+        exportCsvBtn.disableProperty().bind(resultProp.isNull());
+        exportSvgBtn.disableProperty().bind(resultProp.isNull());
 
         Scene scene = new Scene(root, 600, 400);
         stage.setScene(scene);
@@ -165,29 +171,53 @@ public class FlowModifierUI extends Application {
         }
 
         lastPipe = new PipeSpecs(id, flowLpm, stripLength);
-        lastLayout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, step, wall);
-        table.getItems().setAll(lastLayout.holes());
-        lastSvg = SvgWriter.toSvg(lastLayout, lastPipe);
-        blueprintView.getEngine().loadContent(lastSvg, "image/svg+xml");
-        rightTabs.setVisible(true);
-        confirmBtn.setDisable(false);
-        exportCsvBtn.setDisable(false);
-        exportSvgBtn.setDisable(false);
-        gen3dBtn.setDisable(false);
+        Scene scene = table.getScene();
+        scene.setCursor(Cursor.WAIT);
 
-        double re = PhysicsUtil.reynolds(id, flowLpm);
-        double sheetW = Math.PI * id;
-        double minD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).min().orElse(dMin);
-        double maxD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).max().orElse(dMax);
-        double usedWall = wall != null ? wall : PipeSchedule.defaultWall(id);
-        double pitch = stripLength / (lastLayout.holes().size() + 1);
-        double minWeb = 0.30 * usedWall;
-        boolean okSpacing = pitch >= maxD + minWeb;
-        summaryLabel.setText(String.format(
-                "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   \u00D8 step = %.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm\nPitch = %.1f mm  (min web = %.1f mm)",
-                stripLength, lastLayout.holes().size(), minD, maxD, step, lastLayout.worstCaseErrorPct(),
-                re, sheetW, stripLength, pitch, minWeb));
-        summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 || !okSpacing ? Color.RED : Color.BLACK);
+        Task<DesignResult> task = new Task<>() {
+            @Override
+            protected DesignResult call() {
+                HoleLayout layout = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, step, wall);
+                return new DesignResult(lastPipe, layout, null, layout.worstCaseErrorPct());
+            }
+        };
+
+        task.setOnSucceeded(ev -> {
+            scene.setCursor(Cursor.DEFAULT);
+            DesignResult result = task.getValue();
+            resultProp.set(result);
+            lastLayout = result.holeLayout();
+            table.getItems().setAll(lastLayout.holes());
+            lastSvg = SvgWriter.toSvg(lastLayout, lastPipe);
+            blueprintView.getEngine().loadContent(lastSvg, "image/svg+xml");
+            rightTabs.setVisible(true);
+            confirmBtn.setDisable(false);
+            gen3dBtn.setDisable(false);
+
+            double re = PhysicsUtil.reynolds(id, flowLpm);
+            double sheetW = Math.PI * id;
+            double minD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).min().orElse(dMin);
+            double maxD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).max().orElse(dMax);
+            double usedWall = wall != null ? wall : PipeSchedule.defaultWall(id);
+            double pitch = stripLength / (lastLayout.holes().size() + 1);
+            double minWeb = 0.30 * usedWall;
+            boolean okSpacing = pitch >= maxD + minWeb;
+            summaryLabel.setText(String.format(
+                    "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   \u00D8 step = %.1f mm   Error=%.1f%%\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm\nPitch = %.1f mm  (min web = %.1f mm)",
+                    stripLength, lastLayout.holes().size(), minD, maxD, step, lastLayout.worstCaseErrorPct(),
+                    re, sheetW, stripLength, pitch, minWeb));
+            summaryLabel.setTextFill(lastLayout.worstCaseErrorPct() > 5.0 || !okSpacing ? Color.RED : Color.BLACK);
+        });
+
+        task.setOnFailed(ev -> {
+            scene.setCursor(Cursor.DEFAULT);
+            Throwable ex = task.getException();
+            Alert a = new Alert(Alert.AlertType.ERROR, ex.getMessage());
+            a.setHeaderText(null);
+            a.showAndWait();
+        });
+
+        new Thread(task).start();
     }
 
     private void validateFlow() {
@@ -201,36 +231,11 @@ public class FlowModifierUI extends Application {
     }
 
     private void exportCsv() {
-        if (lastLayout == null) return;
-        FileChooser fc = new FileChooser();
-        fc.setInitialFileName("layout.csv");
-        var file = fc.showSaveDialog(table.getScene().getWindow());
-        if (file == null) return;
-        try {
-            CsvWriter.write(file.toPath(), lastLayout);
-            Alert a = new Alert(Alert.AlertType.INFORMATION, "CSV saved to " + file.getAbsolutePath());
-            a.setHeaderText(null);
-            a.showAndWait();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        ExportService.saveCsv(resultProp.get());
     }
 
     private void exportSvg() {
-        if (lastSvg == null) return;
-        FileChooser fc = new FileChooser();
-        fc.setInitialFileName("layout.svg");
-        var file = fc.showSaveDialog(table.getScene().getWindow());
-        if (file == null) return;
-        try (java.io.PrintWriter pw = new java.io.PrintWriter(file)) {
-            pw.print(lastSvg);
-            Alert a = new Alert(Alert.AlertType.INFORMATION,
-                    "SVG saved to " + file.getAbsolutePath() + " (import into CAD or convert to DXF)");
-            a.setHeaderText(null);
-            a.showAndWait();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        ExportService.saveSvg(resultProp.get());
     }
 
     private void todoAlert() {
