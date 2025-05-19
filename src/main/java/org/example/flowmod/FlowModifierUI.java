@@ -9,11 +9,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import org.example.flowmod.engine.PipeSpecs;
-import org.example.flowmod.engine.PerforatedCoreOptimizer;
-import org.example.flowmod.engine.PhysicsUtil;
+import org.example.flowmod.service.FlowModifierService;
+import org.example.flowmod.service.FlowCalcResult;
 import javafx.concurrent.Task;
 import javafx.scene.Cursor;
-import org.example.flowmod.utils.UnitConv;
 import org.example.flowmod.utils.PipeSchedule;
 import org.example.flowmod.utils.SvgWriter;
 import org.example.flowmod.HoleLayout;
@@ -185,31 +184,30 @@ public class FlowModifierUI extends Application {
                 ExportService.saveSvg(resultProp.get(), ownerStage));
         double id = vals[0];
         double flowGpm = vals[1];
-        double flowLpm = UnitConv.gpmToLpm(flowGpm);
         double stripLength = vals[2];
         double dMin = vals[3];
-        double dMax = Math.round(id * 0.25 * 2) / 2.0;
         final double wall = wallThkField.getText().isBlank()
                 ? PipeSchedule.defaultWall(id)
                 : Double.parseDouble(wallThkField.getText());
 
-        lastPipe = new PipeSpecs(id, flowLpm, stripLength);
         Scene scene = table.getScene();
         scene.setCursor(Cursor.WAIT);
 
-        Task<DesignResult> task = new Task<>() {
+        Task<FlowCalcResult> task = new Task<>() {
             @Override
-            protected DesignResult call() {
-                lastOpt = PerforatedCoreOptimizer.autoDesign(id, flowLpm, dMin, holeStep, wall);
-                HoleLayout layout = lastOpt.layout();
-                return new DesignResult(lastPipe, layout, null, layout.worstCaseErrorPct());
+            protected FlowCalcResult call() {
+                return FlowModifierService.calculate(id, flowGpm, stripLength,
+                        dMin, holeStep, wall);
             }
         };
 
         task.setOnSucceeded(ev -> {
             scene.setCursor(Cursor.DEFAULT);
-            resultProp.set(task.getValue());
-            DesignResult result = task.getValue();
+            FlowCalcResult data = task.getValue();
+            DesignResult result = data.design();
+            lastOpt = data.optimisation();
+            lastPipe = result.pipe();
+            resultProp.set(result);
             lastLayout = result.holeLayout();
             statusProp.set(lastOpt.meetsSpec(5.0) ? "PASS" : "FAIL");
             table.getItems().setAll(lastLayout.holes());
@@ -219,14 +217,13 @@ public class FlowModifierUI extends Application {
             confirmBtn.setDisable(false);
             gen3dBtn.setDisable(false);
 
-            double re = PhysicsUtil.reynolds(id, flowLpm);
-            double sheetW = Math.PI * id;
-            double minD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).min().orElse(dMin);
-            double maxD = lastLayout.holes().stream().mapToDouble(HoleSpec::diameterMm).max().orElse(dMax);
-            double usedWall = wall;
-            double pitch = stripLength / (lastLayout.holes().size() + 1);
-            double minWeb = 0.30 * usedWall;
-            boolean okSpacing = pitch >= maxD + minWeb;
+            double re = data.reynolds();
+            double sheetW = data.sheetWidthMm();
+            double minD = data.minHoleMm();
+            double maxD = data.maxHoleMm();
+            double pitch = data.pitchMm();
+            double minWeb = data.minWebMm();
+            boolean okSpacing = data.spacingOk();
             summaryLabel.setText(String.format(
                     "Len=%.0f mm   Rows=%d   \u00D8 %.1f-%.1f mm   \u00D8 step = %.1f mm   Error=%.1f%%   Uniformity=%.1f%% (%s)\nRe=%.0f   Sheet=%.0f\u00D7%.0f mm\nPitch = %.1f mm  (min web = %.1f mm)",
                     stripLength, lastLayout.holes().size(), minD, maxD, holeStep, lastLayout.worstCaseErrorPct(),
