@@ -1,0 +1,6 @@
+org/example/flowmod/FlowModifierUITest.class
+org/example/flowmod/SvgWriterTest.class
+org/example/flowmod/HoleOptimizerTest.class
+org/example/flowmod/CsvWriterTest.class
+org/example/flowmod/PerforatedCoreOptimizerTest.class
+org/example/flowmod/FlowPhysicsTest.class

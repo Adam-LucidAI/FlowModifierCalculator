@@ -21,5 +21,7 @@
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/model3d/ExportService.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/model3d/ModelBuilder.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/ui/FlowModifierStudio.java
+/Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/utils/CsvWriter.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/utils/PipeSchedule.java
+/Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/utils/SvgWriter.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/utils/UnitConv.java
