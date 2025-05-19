@@ -9,7 +9,6 @@ import org.example.flowmod.HoleSpec;
 import org.example.flowmod.engine.DesignResult;
 
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.PrintWriter;
 
 public class AppLauncher {

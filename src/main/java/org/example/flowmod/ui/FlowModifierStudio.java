@@ -8,13 +8,13 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Box;
 import javafx.scene.Group;
 import javafx.scene.PerspectiveCamera;
 import javafx.scene.SubScene;
 import javafx.stage.Stage;
 import org.example.flowmod.*;
 import org.example.flowmod.engine.*;
+import org.example.flowmod.model3d.ModelBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -117,6 +117,7 @@ public class FlowModifierStudio extends Application {
         FlowPhysics.Result phys = FlowPhysics.compute(pipe);
         summaryLabel.setText("Regime: " + phys.regime());
 
-        previewGroup.getChildren().setAll(new Box(50, 10, 10));
+        previewGroup.getChildren().setAll(
+                ModelBuilder.buildFlowModifierMesh(result, pipe));
     }
 }
