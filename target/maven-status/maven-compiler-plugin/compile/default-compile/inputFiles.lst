@@ -1,6 +1,7 @@
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/AppLauncher.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/AutoCoreApp.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/CoreApp.java
+/Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/DrillCatalogue.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/FlowModifierUI.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/HoleLayout.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/HoleOptimizer.java
@@ -20,3 +21,5 @@
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/model3d/ExportService.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/model3d/ModelBuilder.java
 /Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/ui/FlowModifierStudio.java
+/Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/utils/PipeSchedule.java
+/Users/adamgauthier/Documents/GitHub/FlowModifierCalculator/src/main/java/org/example/flowmod/utils/UnitConv.java
