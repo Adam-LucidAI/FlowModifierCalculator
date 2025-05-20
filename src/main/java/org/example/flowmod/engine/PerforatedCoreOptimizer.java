@@ -197,7 +197,7 @@ public final class PerforatedCoreOptimizer {
                                              int holes,
                                              double drillStepMm) {
         double dpStart = FlowPhysics.compute(pipe).pressureDropPaPerM() * (stripLengthMm / 1000.0);
-        if (dpStart <= 0) {
+        if (Double.isNaN(dpStart) || dpStart <= 0) {
             dpStart = 1000.0;
         }
         double dpEnd = dpStart * 0.2;
