@@ -20,12 +20,20 @@ public final class GraduatedHoleOptimizer implements ModifierDesignStrategy {
                                  int rows,
                                  double Cd) {
         List<HoleSpec> specs = new ArrayList<>();
-        double flowPerHole = pipe.flowRateLpm() / rows;
-        for (int i = 0; i < rows; i++) {
-            double position = (i + 1) * pipe.modifierLengthMm() / (rows + 1);
-            double dia = drillMinMm + (drillMaxMm - drillMinMm) * i / (rows - 1.0);
-            double snapped = Math.round(dia * 2.0) / 2.0;
-            specs.add(new HoleSpec(i + 1, position, snapped, flowPerHole));
+
+        if (rows <= 1) {
+            if (rows == 1) {
+                double position = pipe.modifierLengthMm() / 2.0;
+                specs.add(new HoleSpec(1, position, drillMinMm, pipe.flowRateLpm()));
+            }
+        } else {
+            double flowPerHole = pipe.flowRateLpm() / rows;
+            for (int i = 0; i < rows; i++) {
+                double position = (i + 1) * pipe.modifierLengthMm() / (rows + 1);
+                double dia = drillMinMm + (drillMaxMm - drillMinMm) * i / (rows - 1.0);
+                double snapped = Math.round(dia * 2.0) / 2.0;
+                specs.add(new HoleSpec(i + 1, position, snapped, flowPerHole));
+            }
         }
         HoleLayout layout = new HoleLayout(specs, 0.0);
         return new DesignResult(pipe, layout, null, 0.0);
