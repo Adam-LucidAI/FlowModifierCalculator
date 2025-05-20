@@ -83,4 +83,16 @@ public class PerforatedCoreOptimizerTest {
             assertTrue(pitch >= h.diameterMm() + 0.6);
         }
     }
+
+    @Test
+    void zeroDiameterProducesFiniteLayout() {
+        PipeSpecs pipe = new PipeSpecs(0, 50, 100);
+        HoleLayout layout = PerforatedCoreOptimizer.design(pipe, 100, 50, 1.0, 5.0, 5.0);
+        assertFalse(Double.isNaN(layout.worstCaseErrorPct()));
+        for (HoleSpec h : layout.holes()) {
+            assertFalse(Double.isNaN(h.diameterMm()));
+            assertFalse(Double.isNaN(h.positionMm()));
+            assertFalse(Double.isNaN(h.predictedLpm()));
+        }
+    }
 }
